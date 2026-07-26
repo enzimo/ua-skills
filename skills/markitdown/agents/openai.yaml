@@ -1,0 +1,7 @@
+interface:
+  display_name: "MarkItDown"
+  short_description: "Convert documents into LLM-ready Markdown"
+  default_prompt: "Use $markitdown to convert this document into Markdown and save the result to a file."
+
+policy:
+  allow_implicit_invocation: true

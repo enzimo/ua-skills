@@ -1,0 +1,4 @@
+interface:
+  display_name: "GitHub CLI"
+  short_description: "Use GitHub via gh or secure_cli"
+  default_prompt: "Use $gh to inspect this repository"
