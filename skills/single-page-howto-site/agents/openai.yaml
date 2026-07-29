@@ -1,4 +1,0 @@
-interface:
-  display_name: "Single-Page How-To Sites"
-  short_description: "Generate UA-styled checklist guides"
-  default_prompt: "Use $single-page-howto-site to build a hosted Universal Agents-styled checklist website for this how-to request."
