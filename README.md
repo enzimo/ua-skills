@@ -35,7 +35,7 @@ Below is a summary of the skills currently available in this repository:
 | **`gog`** | Uses Google Workspace through `gog` or brokered secure CLI actions for Gmail, Calendar, Drive, Docs, Sheets, Contacts, Admin, and related Google workflows, including durable OAuth publishing guidance, the primary manual web flow, the `secure_cli` provider/action/params envelope, decoded Gmail body, and attachment handling. |
 | **`markitdown`** | Converts local documents and supported URLs to Markdown with Microsoft's MarkItDown across PDFs, Office files, HTML, CSV, JSON, XML, images, audio, ZIPs, EPubs, and more. |
 | **`searxng-search`** | Searches the web through a privacy-respecting SearXNG metasearch instance for web, news, image, video, and specialized queries. |
-| **`single-page-howto-site`** | Builds Universal Agents-styled single-page procedural guidance sites with materials, tools, safety notes, ordered checklists, plans, and follow-up chat. |
+| **`single-page-site`** | Builds Universal Agents-styled single-page articles, comparisons, how-tos, and interactive apps with optional structured UI and follow-up chat. |
 | **`skill-creator`** | Guides creation or updates of skills that extend an agent with specialized knowledge, workflows, tool integrations, and validation/package tooling. |
 | **`systematic-debugging`** | Applies a four-phase debugging methodology with root cause analysis before fixes. |
 | **`user-onboarding-guide`** | Guides early Universal Agents conversations with a warm opt-in capability tour, relatable examples, documentation links, finish handling, and remembered progress. |

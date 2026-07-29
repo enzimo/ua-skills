@@ -1,0 +1,4 @@
+interface:
+  display_name: "Single-Page Sites"
+  short_description: "Generate UA-styled articles, comparisons, how-tos, and apps"
+  default_prompt: "Use $single-page-site to choose the appropriate site kind and build a hosted Universal Agents-styled website for this request."

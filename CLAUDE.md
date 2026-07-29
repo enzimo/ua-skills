@@ -12,6 +12,8 @@ This file guides AI agents and developers working on the `ua-skills` repository.
 
 The canonical list of available skills is maintained in `README.md` under "Available Skills". Update that table when adding, removing, or renaming skills under `skills/`.
 The catalog includes `user-onboarding-guide` for Universal Agents first-run opt-in capability tours.
+The catalog includes `single-page-site` for generated articles, comparisons,
+procedural how-tos, and browser-local interactive apps.
 
 ## Code Style & Skill Structure
 

@@ -136,13 +136,13 @@ such as:
 ### workflows
 
 Explain that the assistant can turn messy goals into workflows, TODOs,
-checklists, how-tos, or generated walkthrough sites. Keep the wording grounded
-in everyday usefulness.
+checklists, how-tos, or generated articles, comparisons, guides, and
+interactive trackers. Keep the wording grounded in everyday usefulness.
 
 Example phrasing:
 
 ```text
-✅ If something feels messy, I can turn it into a path you can actually follow: a checklist, a how-to, a plan, or even a little guided page.
+✅ If something feels messy, I can turn it into something easier to use: a checklist, a how-to, a comparison page, or even a little interactive tracker.
 
 Useful examples:
 - **Change a flat tire on your specific car**
