@@ -30,7 +30,7 @@ Below is a summary of the skills currently available in this repository:
 | **`brave-search`** | Uses Brave Search API for independent-index web search, LLM grounding context, freshness filters, Goggles ranking, and provider comparison workflows. |
 | **`build-project-room`** | Prepares gated project rooms for high-stakes, multi-source knowledge work from messy or conflicting source material. |
 | **`bw`** | Uses Bitwarden through the `bw` CLI or brokered secure CLI actions for auth, credential search, metadata lookup, and secret use. |
-| **`crawl4ai`** | Crawls and scrapes web content through the hosted Crawl4AI service, producing clean Markdown with JS rendering and content filtering support. |
+| **`crawl4ai`** | Uses the attached Crawl4AI MCP server for rendered retrieval, extraction, screenshots, PDFs, and crawl workflows. |
 | **`gh`** | Uses GitHub from a terminal-only environment through `gh` or brokered secure CLI actions for repositories, issues, PRs, Actions, releases, search, and API calls. |
 | **`gog`** | Uses Google Workspace through `gog` or brokered secure CLI actions for Gmail, Calendar, Drive, Docs, Sheets, Contacts, Admin, and related Google workflows, including durable OAuth publishing guidance, the primary manual web flow, the `secure_cli` provider/action/params envelope, decoded Gmail body, and attachment handling. |
 | **`markitdown`** | Converts local documents and supported URLs to Markdown with Microsoft's MarkItDown across PDFs, Office files, HTML, CSV, JSON, XML, images, audio, ZIPs, EPubs, and more. |

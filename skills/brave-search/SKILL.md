@@ -27,10 +27,10 @@ Default hierarchy:
   one call rather than only ranked links and snippets.
 - Exa: semantic/neural search, content-enriched search, or when Exa's result
   model is a better match for concepts, papers, companies, and technical pages.
-- SearXNG artifact search: alternate engine coverage, metasearch comparison,
-  and auditable search-result artifacts.
-- Crawl4AI/web fetch artifacts: reading selected pages, sitemaps, or direct
-  page retrieval after search has identified likely sources.
+- `searxng(operation="search")`: alternate engine coverage, metasearch
+  comparison, and auditable search-result artifacts.
+- `crawl4ai_md` or `crawl4ai_crawl`: rendered retrieval through the Crawl4AI
+  MCP server and source inspection after search has identified likely pages.
 
 Compare at least two complementary search sources when tool budget allows and
 the answer is high-stakes, fast-changing, commercial, contested, or likely to be
@@ -47,8 +47,8 @@ model-safe summaries:
 - `brave_llm_context_artifact`: Brave's pre-extracted grounding context for
   agent/RAG use, with bounded preview text plus saved raw artifacts.
 
-Use `web_fetch_artifact` on selected URLs when you need to inspect the actual
-source page before citing or synthesizing.
+Use the prefixed Crawl4AI MCP tools on selected URLs when you need to inspect
+the rendered source page before citing or synthesizing.
 
 ## Universal Agents Shell Behavior
 
