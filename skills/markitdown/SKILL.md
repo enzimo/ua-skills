@@ -27,7 +27,7 @@ diagnosing conversion failure.
 3. Use the bundled wrapper script when working from this repo:
 
 ```bash
-python .skills/markitdown/scripts/convert_with_markitdown.py input.pdf -o output.md
+python "${SKILLS_DIR:-skills}/markitdown/scripts/convert_with_markitdown.py" input.pdf -o output.md
 ```
 
 The wrapper uses an installed `markitdown` command if available. If not, it
@@ -63,7 +63,7 @@ Plugins are disabled by default. Enable them only when the conversion requires a
 known installed plugin:
 
 ```bash
-python .skills/markitdown/scripts/convert_with_markitdown.py input.pdf -o output.md --use-plugins
+python "${SKILLS_DIR:-skills}/markitdown/scripts/convert_with_markitdown.py" input.pdf -o output.md --use-plugins
 ```
 
 For image-heavy PDFs, DOCX, PPTX, or XLSX files, consider the `markitdown-ocr`
@@ -77,7 +77,7 @@ When the user explicitly wants Azure Document Intelligence conversion and has
 provided an endpoint, pass it through:
 
 ```bash
-python .skills/markitdown/scripts/convert_with_markitdown.py input.pdf -o output.md \
+python "${SKILLS_DIR:-skills}/markitdown/scripts/convert_with_markitdown.py" input.pdf -o output.md \
   --docintel-endpoint "$DOCUMENT_INTELLIGENCE_ENDPOINT"
 ```
 
