@@ -1,6 +1,6 @@
 ---
 name: crawl4ai
-description: Use the attached Crawl4AI 0.9.1 MCP server for rendered retrieval, clean Markdown or HTML, screenshots, PDFs, structured extraction, configurable crawling, JavaScript execution, and Crawl4AI documentation queries. Use whenever a task needs browser-rendered page content, visual/document capture, or extraction from modern websites.
+description: Use the attached Crawl4AI 0.9.2 MCP server for rendered retrieval, clean Markdown or HTML, screenshots, PDFs, structured extraction, configurable crawling, JavaScript execution, and Crawl4AI documentation queries. Use whenever a task needs browser-rendered page content, visual/document capture, or extraction from modern websites.
 ---
 
 # Crawl4AI MCP
@@ -16,7 +16,7 @@ attached or authorized for the current agent.
 
 ## Available Tools
 
-Use the model-visible MCP schema as the authority for each call. Crawl4AI 0.9.1
+Use the model-visible MCP schema as the authority for each call. Crawl4AI 0.9.2
 normally exposes:
 
 | Tool | Use |
@@ -56,7 +56,7 @@ and extraction strategies only through fields present in the live
 extraction when the page structure supports it; use server-backed LLM
 extraction only when deterministic strategies are unsuitable.
 
-Crawl4AI 0.9.1 accepts declarative hook actions rather than arbitrary Python
+Crawl4AI 0.9.2 accepts declarative hook actions rather than arbitrary Python
 hook code. Use only hook actions accepted by the live schema. Never attempt to
 smuggle code, credentials, provider keys, proxy settings, persistent sessions,
 or unsupported browser initialization through unrelated fields.
@@ -79,6 +79,10 @@ provides a supported field or declarative hook for them.
   authorized MCP server; report that boundary.
 - Authentication or connection failure: report that the named Crawl4AI MCP
   server is unavailable and preserve the error details.
+- SSE POST failure or tool deadline: the runtime returns an error and reconnects
+  before the next invocation, but it does not replay the failed request. Retry
+  read-only retrieval or capture once. Do not retry JavaScript or another
+  potentially mutating action unless the user confirms replay is safe.
 - Rejected configuration: remove or correct the rejected field according to
   the live schema or consult `crawl4ai_ask`.
 - JavaScript or hook denial: respect the server policy and use a lower-risk
