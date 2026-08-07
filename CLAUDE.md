@@ -14,6 +14,9 @@ The canonical list of available skills is maintained in `README.md` under "Avail
 The catalog includes `user-onboarding-guide` for Universal Agents first-run opt-in capability tours.
 The catalog includes `single-page-site` for generated articles, comparisons,
 procedural how-tos, and browser-local interactive apps.
+The catalog's `markitdown` skill complements the Universal Agents bundled local
+AnyDoc skill by owning broader formats, URLs, plugins, and OCR-related
+workflows; do not blur that converter boundary with a silent fallback.
 
 ## Code Style & Skill Structure
 
