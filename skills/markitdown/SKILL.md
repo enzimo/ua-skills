@@ -1,6 +1,6 @@
 ---
 name: markitdown
-description: Convert local documents and supported URLs to Markdown with Microsoft's MarkItDown. Use when Codex needs LLM-friendly Markdown extracted from PDFs, Word documents, PowerPoint decks, Excel workbooks, HTML, CSV, JSON, XML, images, audio, ZIP archives, EPubs, Outlook messages, YouTube URLs, or other document formats.
+description: Converts documents and supported URLs to Markdown with Microsoft's MarkItDown. Use when an agent needs HTML, JSON, XML, images, audio, archives, Outlook messages, YouTube URLs, plugins, OCR-related workflows, or another input or capability outside the locally installed AnyDoc converter's format set.
 ---
 
 # MarkItDown
@@ -8,6 +8,13 @@ description: Convert local documents and supported URLs to Markdown with Microso
 Use Microsoft's MarkItDown when a user asks to convert a document or supported
 URL into Markdown for reading, summarization, indexing, or downstream LLM
 analysis.
+
+Prefer the bundled `convert-documents-to-markdown` skill and local Rust
+`anydoc` command for supported local Word, PowerPoint, Excel, OpenDocument,
+RTF, EPUB, CSV, and text-based PDF inputs. Use MarkItDown for its broader input
+surface, configured plugins, or OCR-related workflows. Do not invoke MarkItDown
+as a silent fallback after an AnyDoc failure; explain the changed converter and
+its implications first.
 
 ## Universal Agents Shell Behavior
 

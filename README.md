@@ -33,7 +33,7 @@ Below is a summary of the skills currently available in this repository:
 | **`crawl4ai`** | Uses the attached Crawl4AI MCP server for rendered retrieval, extraction, screenshots, PDFs, and crawl workflows. |
 | **`gh`** | Uses GitHub from a terminal-only environment through `gh` or brokered secure CLI actions for repositories, issues, PRs, Actions, releases, search, and API calls. |
 | **`gog`** | Uses Google Workspace through `gog` or brokered secure CLI actions for Gmail, Calendar, Drive, Docs, Sheets, Contacts, Admin, and related Google workflows, including durable OAuth publishing guidance, the primary manual web flow, the `secure_cli` provider/action/params envelope, decoded Gmail body, and attachment handling. |
-| **`markitdown`** | Converts local documents and supported URLs to Markdown with Microsoft's MarkItDown across PDFs, Office files, HTML, CSV, JSON, XML, images, audio, ZIPs, EPubs, and more. |
+| **`markitdown`** | Handles URLs, HTML, JSON/XML, images, audio, archives, Outlook, YouTube, plugins, OCR-related workflows, and other conversion needs outside Universal Agents' bundled local AnyDoc format set. |
 | **`searxng-search`** | Searches the web through a privacy-respecting SearXNG metasearch instance for web, news, image, video, and specialized queries. |
 | **`single-page-site`** | Builds Universal Agents-styled single-page articles, comparisons, how-tos, and interactive apps with optional structured UI and follow-up chat. |
 | **`skill-creator`** | Guides creation or updates of skills that extend an agent with specialized knowledge, workflows, tool integrations, and validation/package tooling. |
@@ -72,6 +72,10 @@ python skills/skill-creator/scripts/package_skill.py skills/<skill-name>
 - **Documentation Sync:** Always update `README.md`, `CLAUDE.md`, and `AGENTS.md` whenever adding or modifying files or introducing new architecture patterns.
 - **Credential Handling:** Skills that use credentials must instruct agents to check already hydrated CLI/runtime auth, environment variables, secret-file mounts, or credential stores before requesting new credentials. Agents must never ask users to paste secrets into chat; when new credentials are needed, direct users to the runtime credential collection form.
 - **Universal Agents Shell Handling:** Command-oriented skills must direct agents to the runtime `shell-execution-workflows` skill. Domain instructions should add only relevant command flags and policy caveats, leaving RTK selection, non-interactive execution, timeouts, working directories, result interpretation, credentialed CLI blocking, and loopback blocking to the shared runtime contract.
+- **Document Conversion Boundaries:** Prefer the bundled local Rust AnyDoc skill
+  for its supported Office, OpenDocument, RTF, EPUB, CSV, and text-based PDF
+  formats. Keep `markitdown` focused on broader formats, URLs, plugins, and OCR-
+  related workflows, and never hide a converter change behind a fallback.
 
 ---
 
