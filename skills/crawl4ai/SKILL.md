@@ -7,12 +7,17 @@ description: Use the attached Crawl4AI 0.9.2 MCP server for rendered retrieval, 
 
 Use the tools supplied by the named `crawl4ai` MCP server. Universal Agents
 prefixes every upstream tool with `crawl4ai_` so its origin remains explicit
-and can become a Cedar authorization resource.
+while the original upstream operation remains the exact Cedar authorization
+resource. The agent process receives a broker proxy and schemas, not the MCP
+endpoint credential.
 
 Do not call the dormant project-native `crawl4ai(operation=...)` implementation.
 Do not use shell, curl, Python HTTP clients, or a loopback URL to bypass the MCP
 server. If the prefixed tools are absent, report that Crawl4AI MCP access is not
-attached or authorized for the current agent.
+installed, discovered, attached, available, or authorized for the current
+agent. Installation, initial discovery, and attachment to an agent type are
+separate authorities. Do not ask for a restart; approved, discovered, and
+attached MCP connections become available at a safe turn boundary.
 
 ## Available Tools
 
@@ -29,8 +34,10 @@ normally exposes:
 | `crawl4ai_crawl` | Crawl one or more URLs with the full MCP-exposed browser, crawler, extraction, hook, and streaming configuration |
 | `crawl4ai_ask` | Query Crawl4AI's indexed documentation and library context |
 
-The server may add tools over time. Use any additional `crawl4ai_*` tool when
-its live schema matches the task and operator policy permits it.
+The server may add tools over time, but newly discovered operations or schema
+changes remain quarantined until their exact catalog update is reviewed. Use an
+additional `crawl4ai_*` tool only when it is actually attached and its live
+schema and operator policy permit it.
 
 ## Workflow
 
@@ -75,8 +82,9 @@ provides a supported field or declarative hook for them.
 
 ## Failures
 
-- Missing `crawl4ai_*` tools: the current agent lacks the configured or
-  authorized MCP server; report that boundary.
+- Missing `crawl4ai_*` tools: inspect installed connection state when that tool
+  is available, then report whether the connection is pending, unattached,
+  unavailable, or unauthorized. Do not restart to refresh it.
 - Authentication or connection failure: report that the named Crawl4AI MCP
   server is unavailable and preserve the error details.
 - SSE POST failure or tool deadline: the runtime returns an error and reconnects

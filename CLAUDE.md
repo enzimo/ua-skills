@@ -14,6 +14,11 @@ The canonical list of available skills is maintained in `README.md` under "Avail
 The catalog includes `user-onboarding-guide` for Universal Agents first-run opt-in capability tours.
 The catalog includes `single-page-site` for generated articles, comparisons,
 procedural how-tos, and browser-local interactive apps.
+The catalog includes `long-horizon-plan-execution` for self-sustaining execution,
+domain-procedure governance, objective health, and adaptive recovery. Keep its
+normative requirements synchronized with
+`../ua-architecture/docs/SOP-OODA-Loop.md`; allow skill-only operational
+refinements only when they preserve that SOP's meaning.
 The catalog's `markitdown` skill complements the Universal Agents bundled local
 AnyDoc skill by owning broader formats, URLs, plugins, and OCR-related
 workflows; do not blur that converter boundary with a silent fallback.
@@ -21,6 +26,7 @@ workflows; do not blur that converter boundary with a silent fallback.
 ## Code Style & Skill Structure
 
 - **Skill Directory Layout:**
+
   ```text
   skills/skill-name/
   ├── SKILL.md (required - contains YAML metadata and instructions)

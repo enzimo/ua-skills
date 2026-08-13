@@ -31,6 +31,7 @@ Below is a summary of the skills currently available in this repository:
 | **`build-project-room`** | Prepares gated project rooms for high-stakes, multi-source knowledge work from messy or conflicting source material. |
 | **`bw`** | Uses Bitwarden through the `bw` CLI or brokered secure CLI actions for auth, credential search, metadata lookup, and secret use. |
 | **`crawl4ai`** | Uses the attached Crawl4AI MCP server for rendered retrieval, extraction, screenshots, PDFs, and crawl workflows. |
+| **`long-horizon-plan-execution`** | Guides self-sustaining teams through goal contracts, domain-procedure discovery, adaptive OODA execution, objective-health decisions, recovery, and evidence-based closure. |
 | **`gh`** | Uses GitHub from a terminal-only environment through `gh` or brokered secure CLI actions for repositories, issues, PRs, Actions, releases, search, and API calls. |
 | **`gog`** | Uses Google Workspace through `gog` or brokered secure CLI actions for Gmail, Calendar, Drive, Docs, Sheets, Contacts, Admin, and related Google workflows, including durable OAuth publishing guidance, the primary manual web flow, the `secure_cli` provider/action/params envelope, decoded Gmail body, and attachment handling. |
 | **`markitdown`** | Handles URLs, HTML, JSON/XML, images, audio, archives, Outlook, YouTube, plugins, OCR-related workflows, and other conversion needs outside Universal Agents' bundled local AnyDoc format set. |
@@ -47,19 +48,25 @@ Below is a summary of the skills currently available in this repository:
 To create a new skill or validate an existing one, use the tooling provided by `skill-creator`:
 
 ### 1. Initialize a Skill
+
 Run the initialization helper script to generate the directory structure and the template `SKILL.md`:
+
 ```bash
 python skills/skill-creator/scripts/init_skill.py <skill-name> --path skills/
 ```
 
 ### 2. Validate a Skill
+
 Ensure that the skill's name and description follow the naming conventions and structure:
+
 ```bash
 python skills/skill-creator/scripts/quick_validate.py skills/<skill-name>
 ```
 
 ### 3. Package a Skill
+
 Generate a packaged ZIP file for distribution:
+
 ```bash
 python skills/skill-creator/scripts/package_skill.py skills/<skill-name>
 ```
@@ -72,6 +79,7 @@ python skills/skill-creator/scripts/package_skill.py skills/<skill-name>
 - **Documentation Sync:** Always update `README.md`, `CLAUDE.md`, and `AGENTS.md` whenever adding or modifying files or introducing new architecture patterns.
 - **Credential Handling:** Skills that use credentials must instruct agents to check already hydrated CLI/runtime auth, environment variables, secret-file mounts, or credential stores before requesting new credentials. Agents must never ask users to paste secrets into chat; when new credentials are needed, direct users to the runtime credential collection form.
 - **Universal Agents Shell Handling:** Command-oriented skills must direct agents to the runtime `shell-execution-workflows` skill. Domain instructions should add only relevant command flags and policy caveats, leaving RTK selection, non-interactive execution, timeouts, working directories, result interpretation, credentialed CLI blocking, and loopback blocking to the shared runtime contract.
+- **OODA Governance Sync:** Keep normative requirements in `long-horizon-plan-execution` synchronized with `ua-architecture/docs/SOP-OODA-Loop.md`. Allow faster skill-only refinement of examples, templates, routing instructions, and operational heuristics only when it does not weaken or redefine the canonical SOP.
 - **Document Conversion Boundaries:** Prefer the bundled local Rust AnyDoc skill
   for its supported Office, OpenDocument, RTF, EPUB, CSV, and text-based PDF
   formats. Keep `markitdown` focused on broader formats, URLs, plugins, and OCR-
