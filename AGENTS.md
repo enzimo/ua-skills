@@ -39,3 +39,10 @@ workflows; do not blur that converter boundary with a silent fallback.
    - For skills that use credentials, instruct agents to check hydrated CLI/runtime auth, environment variables, secret-file mounts, or credential stores before requesting new credentials. Never instruct agents to request secrets in chat; direct users to the runtime credential collection form when new credentials are required.
    - Keep `skills/gog/SKILL.md` aligned with installed `gog` command help, the broker's canonical auth methods, Google's External Testing 7-day refresh-token rule, and the `secure_cli` provider/action/params envelope, especially Gmail search/send params, `gog.exec` argv nesting, decoded-body behavior, and attachment-download behavior.
    - For skills that run commands in Universal Agents, route shared process behavior through the runtime `shell-execution-workflows` skill. Keep domain skills focused on their own command flags and policy caveats; do not duplicate or contradict the shared RTK, timeout, working-directory, result, or broker-boundary contract.
+
+4. **Versioning and Releases:**
+   - Use Semantic Versioning and store the canonical version in `VERSION`.
+   - Update `CHANGELOG.md` for each release.
+   - Tag releases as `v<version>` with an exact match to `VERSION`.
+   - Run the release tests and artifact build before pushing a release tag.
+   - Publish deterministic per-skill ZIP archives and `SHA256SUMS` through the GitHub Actions release workflow.

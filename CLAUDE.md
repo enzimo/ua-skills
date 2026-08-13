@@ -7,6 +7,17 @@ This file guides AI agents and developers working on the `ua-skills` repository.
 - **Skill Validation:** `python skills/skill-creator/scripts/quick_validate.py skills/<skill-name>`
 - **Skill Initialization:** `python skills/skill-creator/scripts/init_skill.py <skill-name> --path skills/`
 - **Skill Packaging:** `python skills/skill-creator/scripts/package_skill.py skills/<skill-name>`
+- **Release Tests:** `python -m unittest discover -s tests -v`
+- **Release Build:** `python scripts/build_release.py --tag v$(cat VERSION)`
+
+## Versioning and Releases
+
+- Use Semantic Versioning and keep the canonical version in `VERSION`.
+- Record user-visible changes in `CHANGELOG.md` before releasing.
+- Create release tags in the exact `v<version>` form; the build rejects tags
+  that do not match `VERSION`.
+- Let `.github/workflows/release.yml` validate and publish deterministic
+  per-skill ZIP archives and `SHA256SUMS` to GitHub Releases.
 
 ## Available Skills
 

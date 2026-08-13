@@ -71,6 +71,26 @@ Generate a packaged ZIP file for distribution:
 python skills/skill-creator/scripts/package_skill.py skills/<skill-name>
 ```
 
+## 📦 Versioning & Releases
+
+The repository uses [Semantic Versioning](https://semver.org/). The current
+version is stored in `VERSION`, and notable changes are recorded in
+`CHANGELOG.md`.
+
+To prepare a release, update `VERSION` and `CHANGELOG.md`, then verify the
+release artifacts locally:
+
+```bash
+python -m unittest discover -s tests -v
+python scripts/build_release.py --tag v$(cat VERSION)
+```
+
+Pushes and pull requests are validated by GitHub Actions. Pushing the matching
+`v<version>` tag starts the release workflow, which validates every skill and
+publishes one deterministic ZIP archive per skill together with `SHA256SUMS`.
+Re-running the workflow replaces the assets on the existing release instead of
+creating a duplicate.
+
 ---
 
 ## 🎯 Guiding Principles
