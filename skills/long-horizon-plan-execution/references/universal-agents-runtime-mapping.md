@@ -36,6 +36,25 @@ the required task-local context in every delegation.
 - Use `activate_plan_execution` for complex work that should execute in fresh
   bounded manager steps.
 
+Treat these lifecycles independently after promotion:
+
+- Keep the `Objective` as durable outcome ownership until its own completion
+  policy reaches a terminal disposition.
+- Keep the Objective's current `Plan` as durable strategy across replaceable
+  execution Tasks. Do not infer Plan completion or failure from a Task's
+  terminal state.
+- Let an Objective-linked `Task` complete when its bounded execution is done,
+  even when Plan work remains.
+- After a Task failure, call `start_objective_task` to create a fresh Task that
+  hydrates and resumes the same active Plan.
+- Call `update_execution_plan_status` when the Plan attempt itself becomes
+  completed, failed, cancelled, or abandoned. A later `start_objective_task`
+  creates a new Plan attempt under the same non-terminal Objective when the
+  prior current Plan is terminal.
+- Treat the Task that created an Objective as provenance only unless it is also
+  explicitly part of the Objective-owned task lineage. Its later failure must
+  not change the successfully created Objective or Plan.
+
 Supply semantic titles, objectives, rationale, evidence needs, and recovery
 intent. Leave runtime-owned task, plan, step, conversation, correlation, and
 routing identifiers to the runtime.

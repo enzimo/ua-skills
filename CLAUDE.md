@@ -26,7 +26,8 @@ The catalog includes `user-onboarding-guide` for Universal Agents first-run opt-
 The catalog includes `single-page-site` for generated articles, comparisons,
 procedural how-tos, and browser-local interactive apps.
 The catalog includes `long-horizon-plan-execution` for self-sustaining execution,
-domain-procedure governance, objective health, and adaptive recovery. Keep its
+domain-procedure governance, independent Objective/Plan/Task lifecycles,
+objective health, and adaptive recovery. Keep its
 normative requirements synchronized with
 `../ua-architecture/docs/SOP-OODA-Loop.md`; allow skill-only operational
 refinements only when they preserve that SOP's meaning.

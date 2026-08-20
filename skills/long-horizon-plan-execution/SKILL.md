@@ -30,6 +30,9 @@ Use the smallest coordination shape that preserves control:
   verification, or recovery.
 - Establish a durable objective for recurring, standing, long-horizon, or
   separately tracked outcomes.
+- Keep objective ownership, living strategy, and bounded execution in separate
+  lifecycles. Let a task end without discarding a still-valid objective or plan,
+  and replace failed execution with a newly bounded task.
 - Delegate only when specialization, independent review, parallel discovery,
   isolation, or capacity creates more value than coordination cost.
 - Avoid adding procedural artifacts that do not change a decision, preserve
