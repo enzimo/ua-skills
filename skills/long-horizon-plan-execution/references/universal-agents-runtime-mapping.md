@@ -64,8 +64,41 @@ routing identifiers to the runtime.
 ## Use Objective work sessions when available
 
 The runtime may load Objective work-session profiles by default, but availability
-does not time-box any Objective. Use the tools only after the user explicitly
-accepts the time-boxed approach for that Objective. Treat a suggestion as inert.
+does not time-box any Objective. When an Objective is likely to need multiple
+execution windows, call `suggest_objective_work_session`; the suggestion is
+inert and reports the available profile catalog and whether custom proposals
+are enabled. Do not create an ordinary schedule as a substitute for an
+Objective work-session policy.
+
+Use this negotiation sequence:
+
+1. Call `list_objective_work_profiles` and compare the operator profiles and
+   the authenticated user's private installed profiles with the Objective's
+   cadence, work duration, checkpoint reserve, model-turn, token, and tool-call
+   needs.
+2. If an existing profile fits, summarize its exact bounds and call
+   `enable_objective_work_sessions` only in the authenticated user request that
+   explicitly accepts those bounds.
+3. If none fits, discuss the bounds first, then call
+   `propose_objective_work_profile`. Use `scope="objective"` for a one-time
+   profile bound to one active Objective, or `scope="reusable"` for a private
+   profile the user can install for future Objectives. A proposal is inert.
+4. Show the proposal's exact profile, scope, expiry, proposal id, and digest.
+   Call `apply_objective_work_profile_proposal` with that same id and digest
+   only after the authenticated user explicitly accepts it. Never treat
+   `confirmed=true` as a substitute for the user's actual acceptance.
+5. Applying a one-time proposal enables its target Objective. Applying a
+   reusable proposal only installs the owner-scoped profile; select it later
+   with `enable_objective_work_sessions` for each Objective that should use it.
+
+The operator-owned policy file bounds custom cadence and budgets. Do not edit
+that file, fabricate a digest, broaden a proposal, or bypass a state-drift
+rejection. Create a fresh proposal if the target policy or reusable profile
+changed before acceptance. Removing an installed profile removes it from
+future selection but does not mutate policies already snapshotted onto
+Objectives. Reconfiguring an Objective updates its existing protected schedule
+in place.
+
 Activate this skill through the normal protected `skills` tool during every new
 session before material work.
 

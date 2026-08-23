@@ -30,6 +30,10 @@ Use the smallest coordination shape that preserves control:
   verification, or recovery.
 - Establish a durable objective for recurring, standing, long-horizon, or
   separately tracked outcomes.
+- Inside Universal Agents, when work is likely to span multiple execution
+  windows or the user asks for periodic time bounds, read
+  [universal-agents-runtime-mapping.md](references/universal-agents-runtime-mapping.md)
+  before selecting, negotiating, proposing, or enabling a work-session profile.
 - Keep objective ownership, living strategy, and bounded execution in separate
   lifecycles. Let a task end without discarding a still-valid objective or plan,
   and replace failed execution with a newly bounded task.
