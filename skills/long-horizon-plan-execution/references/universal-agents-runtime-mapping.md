@@ -13,6 +13,8 @@ side channels, or authority:
 | Durable outcome | Manager-owned `ObjectiveRecord` |
 | Living strategy | Manager-owned `PlanRecord` |
 | Bounded plan execution | `activate_plan_execution` |
+| Multi-session bounded execution | Opt-in `ObjectiveWorkPolicy` and `ObjectiveWorkSession` |
+| Cross-session handoff | `ObjectiveWorkCheckpoint` |
 | Current state | Execution digest |
 | Chronology | Task history |
 | Liveness and pressure | `AgentStatus`, `TaskStatus`, `get_runtime_pressure` |
@@ -58,6 +60,27 @@ Treat these lifecycles independently after promotion:
 Supply semantic titles, objectives, rationale, evidence needs, and recovery
 intent. Leave runtime-owned task, plan, step, conversation, correlation, and
 routing identifiers to the runtime.
+
+## Use Objective work sessions when available
+
+The runtime may load Objective work-session profiles by default, but availability
+does not time-box any Objective. Use the tools only after the user explicitly
+accepts the time-boxed approach for that Objective. Treat a suggestion as inert.
+Activate this skill through the normal protected `skills` tool during every new
+session before material work.
+
+At resume, load the canonical Objective, current Plan, latest checkpoint, and
+recent evidence. Revalidate authority, procedures, stale evidence, and in-flight
+effects before acting. Respect the runtime's safe boundary: stop starting new
+subgoals and call `record_objective_work_checkpoint` while checkpoint reserve
+remains. Record Observe, Orient, Decide, Act, Objective health, evidence delta,
+completed and next subgoals, blockers, artifacts, and in-flight effects. Do not
+turn activity counts into an invented completion percentage.
+
+Treat a runtime-synthesized degraded checkpoint as a continuity aid that needs
+fresh validation, not as proof that the prior session completed its intended
+handoff. Never bypass skill authorization or protected schedule control merely
+because the Objective policy requires this skill.
 
 ## Monitor Objective Health
 
@@ -109,5 +132,8 @@ scope.
 
 Treat semantic objective-health review, procedure-fitness assessment, and
 no-progress detection as manager behavior unless a runtime gate explicitly
-enforces them. Do not claim that a prompt, status signal, or skill activation
-automatically enforces the complete SOP.
+enforces them. The Phase 1–2 work-session runtime enforces admission windows,
+usage accounting, required-skill activation, and checkpoint persistence; it
+does not infer semantic health, choose abandonment, or coordinate distributed
+specialist budgets. Do not claim that a prompt, status signal, or skill
+activation automatically enforces the complete SOP.

@@ -18,6 +18,9 @@ objective health, and adaptive recovery. Keep its
 normative requirements synchronized with
 `../ua-architecture/docs/SOP-OODA-Loop.md`; allow skill-only operational
 refinements only when they preserve that SOP's meaning.
+Keep its runtime mapping aligned with Universal Agents Objective work sessions,
+including explicit acceptance, per-session activation, safe-boundary yield, and
+OODA checkpoint persistence.
 The catalog's `markitdown` skill complements the Universal Agents bundled local
 AnyDoc skill by owning broader formats, URLs, plugins, and OCR-related
 workflows; do not blur that converter boundary with a silent fallback.
