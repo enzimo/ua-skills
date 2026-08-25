@@ -31,7 +31,7 @@ Below is a summary of the skills currently available in this repository:
 | **`build-project-room`** | Prepares gated project rooms for high-stakes, multi-source knowledge work from messy or conflicting source material. |
 | **`bw`** | Uses Bitwarden through the `bw` CLI or brokered secure CLI actions for auth, credential search, metadata lookup, and secret use. |
 | **`crawl4ai`** | Uses the attached Crawl4AI MCP server for rendered retrieval, extraction, screenshots, PDFs, and crawl workflows. |
-| **`long-horizon-plan-execution`** | Guides self-sustaining teams through goal contracts, independent Objective/Plan/Task lifecycles, domain-procedure discovery, adaptive OODA execution, recovery, and evidence-based closure. |
+| **`long-horizon-plan-execution`** | Guides self-sustaining teams through goal contracts, independent Objective/Plan/Task lifecycles, negotiated work-session profiles, adaptive OODA execution, recovery, and evidence-based closure. |
 | **`gh`** | Uses GitHub from a terminal-only environment through `gh` or brokered secure CLI actions for repositories, issues, PRs, Actions, releases, search, and API calls. |
 | **`gog`** | Uses Google Workspace through `gog` or brokered secure CLI actions for Gmail, Calendar, Drive, Docs, Sheets, Contacts, Admin, and related Google workflows, including durable OAuth publishing guidance, the primary manual web flow, the `secure_cli` provider/action/params envelope, decoded Gmail body, and attachment handling. |
 | **`markitdown`** | Handles URLs, HTML, JSON/XML, images, audio, archives, Outlook, YouTube, plugins, OCR-related workflows, and other conversion needs outside Universal Agents' bundled local AnyDoc format set. |
@@ -112,7 +112,7 @@ creating a duplicate.
 - **Credential Handling:** Skills that use credentials must instruct agents to check already hydrated CLI/runtime auth, environment variables, secret-file mounts, or credential stores before requesting new credentials. Agents must never ask users to paste secrets into chat; when new credentials are needed, direct users to the runtime credential collection form.
 - **Universal Agents Shell Handling:** Command-oriented skills must direct agents to the runtime `shell-execution-workflows` skill. Domain instructions should add only relevant command flags and policy caveats, leaving RTK selection, non-interactive execution, timeouts, working directories, result interpretation, credentialed CLI blocking, and loopback blocking to the shared runtime contract.
 - **OODA Governance Sync:** Keep normative requirements in `long-horizon-plan-execution` synchronized with `ua-architecture/docs/SOP-OODA-Loop.md`. Allow faster skill-only refinement of examples, templates, routing instructions, and operational heuristics only when it does not weaken or redefine the canonical SOP.
-- **Objective Work Sessions:** Keep the skill's Universal Agents runtime mapping aligned with the opt-in work-session, required-activation, safe-yield, and checkpoint surfaces without treating the skill as authority.
+- **Objective Work Sessions:** Keep the skill's Universal Agents runtime mapping aligned with opt-in activation, built-in and private profile selection, exact custom-profile acceptance, safe-yield, and checkpoint behavior without treating the skill as authority.
 - **Document Conversion Boundaries:** Prefer the bundled local Rust AnyDoc skill
   for its supported Office, OpenDocument, RTF, EPUB, CSV, and text-based PDF
   formats. Keep `markitdown` focused on broader formats, URLs, plugins, and OCR-
