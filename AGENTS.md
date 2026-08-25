@@ -37,7 +37,7 @@ workflows; do not blur that converter boundary with a silent fallback.
    - Always update `README.md`, `CLAUDE.md`, and `AGENTS.md` before concluding any changes to the project.
 
 3. **Writing Skills:**
-   - Use `skills/skill-creator` to bootstrap, validate, and package skills.
+   - Use `skills/skill-creator` to scope skills with concrete examples, bootstrap their files, validate and package them, and iterate from observed results.
    - Author skills as procedural anchors for capable agents. Define applicability, completion evidence, ordered decisions, checkpoints, failure recovery, and invalidating assumptions where they stabilize execution.
    - Keep names and descriptions concise and discriminating. Test materially revised skills with similar distractors and out-of-scope near-misses when routing quality matters.
    - Create `scripts/`, `references/`, and `assets/` only for a concrete execution role. Request resource directories explicitly from the initializer and load references only when the active procedure needs them.

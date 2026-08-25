@@ -59,6 +59,7 @@ workflows; do not blur that converter boundary with a silent fallback.
 - **Writing Instructions:**
   - Write all instructions using the **imperative/infinitive form** (e.g., "To perform X, do Y" instead of "You should do X").
   - Do not use placeholders.
+  - Start with concrete usage examples, identify reusable contents from them, and iterate against observed results.
   - Treat skills as procedural anchors for capable agents. Define applicability, completion evidence, ordered decisions, checkpoints, recovery, and invalidating assumptions when those elements stabilize execution.
   - Keep discovery metadata concise and discriminating. Test similar-skill distractors and out-of-scope near-misses when materially changing routing behavior.
   - Create `scripts/`, `references/`, and `assets/` only when they have a concrete execution role. Request them explicitly from the initializer and load references only when the current path needs them.
