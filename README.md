@@ -1,6 +1,6 @@
 # UA Skills (`ua-skills`)
 
-A curated collection of modular, reusable, self-contained **Universal Agents (UA) Skills**. These skills extend the capabilities of AI coding assistants and agents with specialized domain knowledge, custom workflows, tool integrations, and bundled helper scripts.
+A curated collection of modular, reusable, self-contained **Universal Agents (UA) Skills**. These skills stabilize agent execution with scoped procedures, decision points, checkpoints, recovery paths, and only the supporting resources required by the workflow.
 
 ---
 
@@ -37,7 +37,7 @@ Below is a summary of the skills currently available in this repository:
 | **`markitdown`** | Handles URLs, HTML, JSON/XML, images, audio, archives, Outlook, YouTube, plugins, OCR-related workflows, and other conversion needs outside Universal Agents' bundled local AnyDoc format set. |
 | **`searxng-search`** | Searches the web through a privacy-respecting SearXNG metasearch instance for web, news, image, video, and specialized queries. |
 | **`single-page-site`** | Builds Universal Agents-styled single-page articles, comparisons, how-tos, and interactive apps with optional structured UI and follow-up chat. |
-| **`skill-creator`** | Guides creation or updates of skills that extend an agent with specialized knowledge, workflows, tool integrations, and validation/package tooling. |
+| **`skill-creator`** | Guides creation and iterative improvement of effective skills through concrete examples, reusable resources, progressive disclosure, packaging, and feedback. |
 | **`systematic-debugging`** | Applies a four-phase debugging methodology with root cause analysis before fixes. |
 | **`user-onboarding-guide`** | Guides early Universal Agents conversations with a warm opt-in capability tour, relatable examples, documentation links, finish handling, and remembered progress. |
 
@@ -49,15 +49,25 @@ To create a new skill or validate an existing one, use the tooling provided by `
 
 ### 1. Initialize a Skill
 
-Run the initialization helper script to generate the directory structure and the template `SKILL.md`:
+Run the initialization helper to create a concise procedural `SKILL.md` template:
 
 ```bash
 python skills/skill-creator/scripts/init_skill.py <skill-name> --path skills/
 ```
 
+Request only the resource directories the skill needs. Add unfinished examples
+only when they will be replaced during the same authoring workflow:
+
+```bash
+python skills/skill-creator/scripts/init_skill.py <skill-name> --path skills/ \
+  --resources scripts,references
+python skills/skill-creator/scripts/init_skill.py <skill-name> --path skills/ \
+  --resources references --examples
+```
+
 ### 2. Validate a Skill
 
-Ensure that the skill's name and description follow the naming conventions and structure:
+Check frontmatter, naming, directory identity, and unfinished generated content:
 
 ```bash
 python skills/skill-creator/scripts/quick_validate.py skills/<skill-name>
@@ -96,6 +106,8 @@ creating a duplicate.
 ## 🎯 Guiding Principles
 
 - **No Fixes Without Root Cause First:** When resolving bugs, developers and agents must trace the data flow to the original trigger and write a reproducing test case before attempting any fixes. Refer to Systematic Debugging for more details.
+- **Procedural Anchoring:** Use concrete examples to capture the workflow, then retain the decisions, sequence, checks, and recovery guidance that make repeated execution reliable. Keep generic facts and copied manuals out of the entrypoint.
+- **Behavioral Verification:** Compare observable task outcomes when materially revising a skill. Include similar-skill distractors and out-of-scope near-misses when routing quality matters; treat structural validation as a packaging gate rather than proof of skill quality.
 - **Documentation Sync:** Always update `README.md`, `CLAUDE.md`, and `AGENTS.md` whenever adding or modifying files or introducing new architecture patterns.
 - **Credential Handling:** Skills that use credentials must instruct agents to check already hydrated CLI/runtime auth, environment variables, secret-file mounts, or credential stores before requesting new credentials. Agents must never ask users to paste secrets into chat; when new credentials are needed, direct users to the runtime credential collection form.
 - **Universal Agents Shell Handling:** Command-oriented skills must direct agents to the runtime `shell-execution-workflows` skill. Domain instructions should add only relevant command flags and policy caveats, leaving RTK selection, non-interactive execution, timeouts, working directories, result interpretation, credentialed CLI blocking, and loopback blocking to the shared runtime contract.
