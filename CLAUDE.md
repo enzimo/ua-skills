@@ -5,8 +5,9 @@ This file guides AI agents and developers working on the `ua-skills` repository.
 ## Commands
 
 - **Skill Validation:** `python skills/skill-creator/scripts/quick_validate.py skills/<skill-name>`
-- **Skill Initialization:** `python skills/skill-creator/scripts/init_skill.py <skill-name> --path skills/`
+- **Skill Initialization:** `python skills/skill-creator/scripts/init_skill.py <skill-name> --path skills/ [--resources scripts,references,assets] [--examples]`
 - **Skill Packaging:** `python skills/skill-creator/scripts/package_skill.py skills/<skill-name>`
+- **Skill-Creator Tests:** `python -m unittest tests.test_skill_creator -v`
 - **Release Tests:** `python -m unittest discover -s tests -v`
 - **Release Build:** `python scripts/build_release.py --tag v$(cat VERSION)`
 
@@ -32,8 +33,9 @@ normative requirements synchronized with
 `../ua-architecture/docs/SOP-OODA-Loop.md`; allow skill-only operational
 refinements only when they preserve that SOP's meaning.
 Keep its runtime mapping aligned with Universal Agents Objective work sessions,
-including explicit acceptance, per-session activation, safe-boundary yield, and
-OODA checkpoint persistence.
+including explicit acceptance, per-session activation, built-in and private
+profile selection, exact custom-profile proposal acceptance, safe-boundary
+yield, and OODA checkpoint persistence.
 The catalog's `markitdown` skill complements the Universal Agents bundled local
 AnyDoc skill by owning broader formats, URLs, plugins, and OCR-related
 workflows; do not blur that converter boundary with a silent fallback.
@@ -58,9 +60,14 @@ workflows; do not blur that converter boundary with a silent fallback.
 - **Writing Instructions:**
   - Write all instructions using the **imperative/infinitive form** (e.g., "To perform X, do Y" instead of "You should do X").
   - Do not use placeholders.
+  - Start with concrete usage examples, identify reusable contents from them, and iterate against observed results.
+  - Treat skills as procedural anchors for capable agents. Define applicability, completion evidence, ordered decisions, checkpoints, recovery, and invalidating assumptions when those elements stabilize execution.
+  - Keep discovery metadata concise and discriminating. Test similar-skill distractors and out-of-scope near-misses when materially changing routing behavior.
+  - Create `scripts/`, `references/`, and `assets/` only when they have a concrete execution role. Request them explicitly from the initializer and load references only when the current path needs them.
 
 - **Process Rules:**
   - **No Fixes Without Root Cause First:** Never apply symptom-focused patches. Trace data flow to the original trigger and write reproducing test cases.
+  - **Behavioral Skill Verification:** Treat `quick_validate.py` as a structural gate only. Compare observable task outcomes for substantial skill revisions and prefer evidence from real successful and failed trajectories over generic advice.
   - **Documentation Sync:** Always update `README.md`, `CLAUDE.md`, and `AGENTS.md` after making changes to the project to reflect the latest state.
   - **Credential Handling:** For skills that use credentials, instruct agents to check hydrated CLI/runtime auth, environment variables, secret-file mounts, or credential stores before asking for new credentials. Never instruct agents to request secrets in chat; direct users to the runtime credential collection form when new credentials are required.
   - **Universal Agents Shell Handling:** For skills that run commands, instruct agents to load `shell-execution-workflows`. Keep commands non-interactive, do not manually prefix them with `rtk`, use `work_dir` and explicit timeouts, parallelize only independent commands, inspect separated output/error and termination metadata, and preserve broker ownership of credentialed CLIs and loopback services.

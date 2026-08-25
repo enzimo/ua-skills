@@ -19,8 +19,9 @@ normative requirements synchronized with
 `../ua-architecture/docs/SOP-OODA-Loop.md`; allow skill-only operational
 refinements only when they preserve that SOP's meaning.
 Keep its runtime mapping aligned with Universal Agents Objective work sessions,
-including explicit acceptance, per-session activation, safe-boundary yield, and
-OODA checkpoint persistence.
+including explicit acceptance, per-session activation, built-in and private
+profile selection, exact custom-profile proposal acceptance, safe-boundary
+yield, and OODA checkpoint persistence.
 The catalog's `markitdown` skill complements the Universal Agents bundled local
 AnyDoc skill by owning broader formats, URLs, plugins, and OCR-related
 workflows; do not blur that converter boundary with a silent fallback.
@@ -37,7 +38,11 @@ workflows; do not blur that converter boundary with a silent fallback.
    - Always update `README.md`, `CLAUDE.md`, and `AGENTS.md` before concluding any changes to the project.
 
 3. **Writing Skills:**
-   - Use `skills/skill-creator` to bootstrap, validate, and package skills.
+   - Use `skills/skill-creator` to scope skills with concrete examples, bootstrap their files, validate and package them, and iterate from observed results.
+   - Author skills as procedural anchors for capable agents. Define applicability, completion evidence, ordered decisions, checkpoints, failure recovery, and invalidating assumptions where they stabilize execution.
+   - Keep names and descriptions concise and discriminating. Test materially revised skills with similar distractors and out-of-scope near-misses when routing quality matters.
+   - Create `scripts/`, `references/`, and `assets/` only for a concrete execution role. Request resource directories explicitly from the initializer and load references only when the active procedure needs them.
+   - Treat `quick_validate.py` as a structural gate, not proof of behavioral quality. Compare observable outcomes for substantial revisions and preserve success or failure labels when learning from trajectories.
    - Skill instructions must be written in the **imperative/infinitive form**.
    - Frontmatter name must be `hyphen-case`, and description must be in third-person without `<` or `>` characters.
    - For skills that use credentials, instruct agents to check hydrated CLI/runtime auth, environment variables, secret-file mounts, or credential stores before requesting new credentials. Never instruct agents to request secrets in chat; direct users to the runtime credential collection form when new credentials are required.

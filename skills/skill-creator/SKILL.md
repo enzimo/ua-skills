@@ -22,6 +22,14 @@ equipped with procedural knowledge that no model can fully possess.
 3. Domain expertise - Company-specific knowledge, schemas, business logic
 4. Bundled resources - Scripts, references, and assets for complex and repetitive tasks
 
+### Apply the operating principles
+
+- Assume the agent already knows common facts, programming concepts, and ordinary tool usage.
+- Match specificity to risk. Fix the sequence when deviation can cause a concrete failure. Otherwise state the outcome and decision criteria.
+- Keep discovery cheap but effective. Give the skill a concise, discriminating name and description that identifies key capabilities instead of an exhaustive list.
+- Keep the entrypoint short enough to remain usable during execution. Route conditional detail to references and load it only when needed.
+- Prefer a narrow procedure that works reliably over a broad skill that attracts unrelated tasks. This is guidance, not a requirement.
+
 ### Anatomy of a Skill
 
 Every skill consists of a required SKILL.md file and optional bundled resources:
@@ -86,7 +94,7 @@ Skills use a three-level loading system to manage context efficiently:
 
 ### Principle of Lack of Surprise
 
-This goes without saying, but skills must not contain malware, exploit code, or any content that could compromise system security. A skill's contents should not surprise the user in their intent. Don't go along with requests to create misleading skills or skills designed to facilitate unauthorized access, data exfiltration, or other malicious activities.
+Skills must not contain malware, exploit code, or any content that could compromise system security. A skill's contents should not surprise the user in their intent. Do not go along with requests to create misleading skills or skills designed to facilitate unauthorized access, data exfiltration, or other malicious activities.
 
 For skills that use credentials, specify where agents should look first: hydrated
 CLI/runtime auth, environment variables, secret-file mounts, or credential
@@ -180,17 +188,19 @@ When creating a new skill from scratch, always run the `init_skill.py` script. T
 Usage:
 
 ```bash
-scripts/init_skill.py <skill-name> --path <output-directory>
+scripts/init_skill.py <skill-name> --path <output-directory> \
+  [--resources scripts,references,assets] [--examples]
 ```
 
 The script:
 
 - Creates the skill directory at the specified path
 - Generates a SKILL.md template with proper frontmatter and TODO placeholders
-- Creates example resource directories: `scripts/`, `references/`, and `assets/`
-- Adds example files in each directory that can be customized or deleted
+- Creates only the resource directories requested with `--resources`
+- Adds example files only when `--examples` is combined with requested resources
 
-After initialization, customize or remove the generated SKILL.md and example files as needed.
+After initialization, replace the generated SKILL.md placeholders. Customize or
+remove any requested example files before validation.
 
 ### Step 4: Edit the Skill
 
@@ -200,7 +210,7 @@ When editing the (newly-generated or existing) skill, remember that the skill is
 
 To begin implementation, start with the reusable resources identified above: `scripts/`, `references/`, and `assets/` files. Note that this step may require user input. For example, when implementing a `brand-guidelines` skill, the user may need to provide brand assets or templates to store in `assets/`, or documentation to store in `references/`.
 
-Also, delete any example files and directories not needed for the skill. The initialization script creates example files in `scripts/`, `references/`, and `assets/` to demonstrate structure, but most skills won't need all of them.
+Also, delete any requested example files and directories not needed for the skill.
 
 #### Update SKILL.md
 
@@ -230,13 +240,15 @@ The packaging script will:
 
 1. **Validate** the skill automatically, checking:
    - YAML frontmatter format and required fields
-   - Skill naming conventions and directory structure
-   - Description completeness and quality
-   - File organization and resource references
+   - Skill naming conventions and directory identity
+   - Description presence and disallowed angle brackets
+   - Unfinished generated placeholders and example files
 
-2. **Package** the skill if validation passes, creating a zip file named after the skill (e.g., `my-skill.zip`) that includes all files and maintains the proper directory structure for distribution.
+2. **Package** the skill if validation passes, creating a zip file named after the skill (e.g., `my-skill.zip`) that maintains the proper directory structure and excludes Python cache artifacts.
 
 If validation fails, the script will report the errors and exit without creating a package. Fix any validation errors and run the packaging command again.
+
+Treat this validator as a structural gate, not proof that the skill improves agent behavior.
 
 ### Step 6: Iterate
 
