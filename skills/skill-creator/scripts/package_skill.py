@@ -13,7 +13,19 @@ Example:
 import sys
 import zipfile
 from pathlib import Path
+
 from quick_validate import validate_skill
+
+PYTHON_CACHE_SUFFIXES = {".pyc", ".pyo"}
+
+
+def should_package(file_path, skill_path):
+    """Exclude interpreter caches that never belong in a skill archive."""
+    relative_path = file_path.relative_to(skill_path)
+    return (
+        "__pycache__" not in relative_path.parts
+        and file_path.suffix not in PYTHON_CACHE_SUFFIXES
+    )
 
 
 def package_skill(skill_path, output_dir=None):
@@ -65,10 +77,10 @@ def package_skill(skill_path, output_dir=None):
 
     # Create the zip file
     try:
-        with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        with zipfile.ZipFile(zip_filename, "w", zipfile.ZIP_DEFLATED) as zipf:
             # Walk through the skill directory
-            for file_path in skill_path.rglob('*'):
-                if file_path.is_file():
+            for file_path in skill_path.rglob("*"):
+                if file_path.is_file() and should_package(file_path, skill_path):
                     # Calculate the relative path within the zip
                     arcname = file_path.relative_to(skill_path.parent)
                     zipf.write(file_path, arcname)
@@ -77,14 +89,16 @@ def package_skill(skill_path, output_dir=None):
         print(f"\n✅ Successfully packaged skill to: {zip_filename}")
         return zip_filename
 
-    except Exception as e:
+    except (OSError, RuntimeError) as e:
         print(f"❌ Error creating zip file: {e}")
         return None
 
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python utils/package_skill.py <path/to/skill-folder> [output-directory]")
+        print(
+            "Usage: python utils/package_skill.py <path/to/skill-folder> [output-directory]"
+        )
         print("\nExample:")
         print("  python utils/package_skill.py skills/public/my-skill")
         print("  python utils/package_skill.py skills/public/my-skill ./dist")
