@@ -236,7 +236,7 @@ it. Resume from the structured authenticated decision without expanding its
 scope.
 
 For a trusted operator-class denial, `request_access` may route an exact
-profile-eligible TeamArchitect action to **Settings → Permissions → Pending**.
+profile-eligible TeamArchitect action to the durable **Settings → Inbox**.
 This is a wait for an authenticated team administrator, not a role assignment
 or conversational approval. Administrator elevation is limited to the exact
 agent, team, acting user, task, action, resource, capability, target-profile

@@ -19,6 +19,13 @@ agent. Installation, initial discovery, and attachment to an agent type are
 separate authorities. Do not ask for a restart; approved, discovered, and
 attached MCP connections become available at a safe turn boundary.
 
+The shipped Crawl4AI connection uses operator-configured authentication. After
+the connection itself is approved, submit the exact
+`mcp.connection.discover` denial receipt for authenticated same-team
+administrator review. Wait for the persisted decision, retry activation, and
+then request the separate owner-reviewed attachment. An empty permission view
+for a non-administrator does not mean the discovery request disappeared.
+
 ## Available Tools
 
 Use the model-visible MCP schema as the authority for each call. Crawl4AI 0.9.2
@@ -84,7 +91,10 @@ provides a supported field or declarative hook for them.
 
 - Missing `crawl4ai_*` tools: inspect installed connection state when that tool
   is available, then report whether the connection is pending, unattached,
-  unavailable, or unauthorized. Do not restart to refresh it.
+  undiscovered, unavailable, or unauthorized. If discovery is awaiting an
+  administrator, tell the user to open the signed-in Settings permission queue;
+  after approval, retry activation and complete the separate attachment flow.
+  Do not restart to refresh it.
 - Authentication or connection failure: report that the named Crawl4AI MCP
   server is unavailable and preserve the error details.
 - SSE POST failure or tool deadline: the runtime returns an error and reconnects
