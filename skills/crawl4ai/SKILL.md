@@ -90,13 +90,17 @@ provides a supported field or declarative hook for them.
 ## Failures
 
 - Missing `crawl4ai_*` tools: inspect installed connection state when that tool
-  is available, then report whether the connection is pending, unattached,
-  undiscovered, unavailable, or unauthorized. If discovery is awaiting an
-  administrator, tell the user to open the signed-in Settings permission queue;
-  after approval, retry activation and complete the separate attachment flow.
-  Do not restart to refresh it.
+  is available. Tell the user whether the server is waiting for approval, the
+  server is approved but this agent does not yet have access, the server's tool
+  list has not been checked, the server is unavailable, or the current user
+  cannot approve it. If an administrator must approve the tool-list check, tell
+  the user to open **Settings > Needs Approval**. After approval, retry the
+  connection and request the separate agent access. Do not restart to refresh
+  it.
 - Authentication or connection failure: report that the named Crawl4AI MCP
-  server is unavailable and preserve the error details.
+  server could not complete the requested action, state the reported reason,
+  and suggest retrying or asking an administrator to check the server. Preserve
+  the technical error details outside the plain-language summary.
 - SSE POST failure or tool deadline: the runtime returns an error and reconnects
   before the next invocation, but it does not replay the failed request. Retry
   read-only retrieval or capture once. Do not retry JavaScript or another

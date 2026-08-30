@@ -36,6 +36,9 @@ Keep its runtime mapping aligned with Universal Agents Objective work sessions,
 including explicit acceptance, per-session activation, built-in and private
 profile selection, exact custom-profile proposal acceptance, safe-boundary
 yield, and OODA checkpoint persistence.
+Keep selective solution variation bounded and discretionary. Treat recorded
+candidate evaluations and selections as advisory; they do not isolate mutable
+work, authorize effects, apply a route, or replace post-integration verification.
 The catalog's `markitdown` skill complements the Universal Agents bundled local
 AnyDoc skill by owning broader formats, URLs, plugins, and OCR-related
 workflows; do not blur that converter boundary with a silent fallback.
@@ -70,5 +73,9 @@ workflows; do not blur that converter boundary with a silent fallback.
   - **Behavioral Skill Verification:** Treat `quick_validate.py` as a structural gate only. Compare observable task outcomes for substantial skill revisions and prefer evidence from real successful and failed trajectories over generic advice.
   - **Documentation Sync:** Always update `README.md`, `CLAUDE.md`, and `AGENTS.md` after making changes to the project to reflect the latest state.
   - **Credential Handling:** For skills that use credentials, instruct agents to check hydrated CLI/runtime auth, environment variables, secret-file mounts, or credential stores before asking for new credentials. Never instruct agents to request secrets in chat; direct users to the runtime credential collection form when new credentials are required.
+  - **Authorization Wording:** In user-facing replies, name the concrete server,
+    tool, agent, credential, or action. On denial or failure, state what did not
+    happen, why, and the next useful step. Keep attach, invoke, grant, lease,
+    consumed, and revoke in technical details.
   - **Universal Agents Shell Handling:** For skills that run commands, instruct agents to load `shell-execution-workflows`. Keep commands non-interactive, do not manually prefix them with `rtk`, use `work_dir` and explicit timeouts, parallelize only independent commands, inspect separated output/error and termination metadata, and preserve broker ownership of credentialed CLIs and loopback services.
 - **Google Workspace Skill:** Keep `skills/gog/SKILL.md` aligned with installed `gog` command help, the broker's canonical auth methods, Google's External Testing 7-day refresh-token rule, and the `secure_cli` provider/action/params envelope, especially Gmail search/send params, `gog.exec` argv nesting, decoded-body behavior, and attachment-download behavior.

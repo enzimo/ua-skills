@@ -21,6 +21,7 @@ side channels, or authority:
 | Delegation | Structured `delegate_task` action |
 | Recovery event | `record_plan_action` |
 | Fresh recovery context | `start_isolated_recovery` |
+| Optional solution comparison | Solution-variation tools |
 | Durable wait | Schedules and heartbeat items |
 | Lesson candidate | `AfterActionReport` |
 
@@ -60,6 +61,23 @@ Treat these lifecycles independently after promotion:
 Supply semantic titles, objectives, rationale, evidence needs, and recovery
 intent. Leave runtime-owned task, plan, step, conversation, correlation, and
 routing identifiers to the runtime.
+
+## Use solution variation only when it helps
+
+`TeamArchitect` may use `start_solution_variation` when several materially
+different approaches are plausible and a bounded comparison could change the
+decision. It may then record candidate hypotheses, agent-authored evaluations,
+and one advisory selection; inspect the current comparison during resumption;
+and close it after integration and ordinary verification. It should skip this
+path when a direct solution is already clear.
+
+These records are a manager-owned sidecar. They neither create Tasks nor add a
+new transport primitive. They also do not isolate a workspace, apply an
+artifact, authorize an effect, change Task, Plan, or Objective status, or turn
+agent-authored references into runtime-verified evidence. Competing branches
+may proceed concurrently only when they are read-only or already have a real
+independent mutation boundary. Otherwise compare before editing and use one
+sequential integration owner.
 
 ## Use Objective work sessions when available
 
@@ -249,8 +267,10 @@ reserve remains; observe the target first if the denial does not contain that
 fresh state. Keep the source task non-terminal. Rely on the gateway to present
 an administrator queue only when the trusted interrupt confirms eligibility.
 A deterministic-review result has no user prompt and must not be polled or
-retried. Resume the same task only from the
-structured decision. Re-observe the exact resource identity, state, and digest
+retried. If `request_access` re-enters after the request became terminal, it
+recovers the persisted structured result without opening another approval; use
+it only when its exact authority remains active. Resume the same task only from
+the structured decision. Re-observe the exact resource identity, state, and digest
 before retry because they may have changed during the wait, verify the resulting
 state after the operation, and record only the lease consumption, remaining-use,
 expiry, or revocation state exposed by a trusted runtime or administrator view

@@ -22,6 +22,9 @@ Keep its runtime mapping aligned with Universal Agents Objective work sessions,
 including explicit acceptance, per-session activation, built-in and private
 profile selection, exact custom-profile proposal acceptance, safe-boundary
 yield, and OODA checkpoint persistence.
+Keep selective solution variation bounded and discretionary. Treat candidate
+evaluations and selections as advisory records rather than workspace isolation,
+effect authority, integration, or final verification.
 The catalog's `markitdown` skill complements the Universal Agents bundled local
 AnyDoc skill by owning broader formats, URLs, plugins, and OCR-related
 workflows; do not blur that converter boundary with a silent fallback.
@@ -48,6 +51,10 @@ workflows; do not blur that converter boundary with a silent fallback.
    - For skills that use credentials, instruct agents to check hydrated CLI/runtime auth, environment variables, secret-file mounts, or credential stores before requesting new credentials. Never instruct agents to request secrets in chat; direct users to the runtime credential collection form when new credentials are required.
    - Keep `skills/gog/SKILL.md` aligned with installed `gog` command help, the broker's canonical auth methods, Google's External Testing 7-day refresh-token rule, and the `secure_cli` provider/action/params envelope, especially Gmail search/send params, `gog.exec` argv nesting, decoded-body behavior, and attachment-download behavior.
    - For skills that run commands in Universal Agents, route shared process behavior through the runtime `shell-execution-workflows` skill. Keep domain skills focused on their own command flags and policy caveats; do not duplicate or contradict the shared RTK, timeout, working-directory, result, or broker-boundary contract.
+   - For user-facing authorization updates, name the concrete server, tool,
+     agent, credential, or action. On denial or failure, state what did not
+     happen, why, and the next useful step. Keep attach, invoke, grant, lease,
+     consumed, and revoke in technical details.
 
 4. **Versioning and Releases:**
    - Use Semantic Versioning and store the canonical version in `VERSION`.
