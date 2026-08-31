@@ -28,10 +28,14 @@ The catalog includes `single-page-site` for generated articles, comparisons,
 procedural how-tos, and browser-local interactive apps.
 The catalog includes `long-horizon-plan-execution` for self-sustaining execution,
 domain-procedure governance, independent Objective/Plan/Task lifecycles,
-objective health, and adaptive recovery. Keep its
+evolving completion criteria, actionable-frontier planning, level-specific
+progress definitions, objective health, and adaptive recovery. Keep its
 normative requirements synchronized with
 `../ua-architecture/docs/SOP-OODA-Loop.md`; allow skill-only operational
 refinements only when they preserve that SOP's meaning.
+Keep material replanning under the designated Plan owner, higher-order agent,
+or human rather than allowing Task-local optimization to redefine the parent
+outcome.
 Keep its runtime mapping aligned with Universal Agents Objective work sessions,
 including explicit acceptance, per-session activation, built-in and private
 profile selection, exact custom-profile proposal acceptance, safe-boundary
