@@ -9,6 +9,7 @@ side channels, or authority:
 | --- | --- |
 | Team lead | `TeamArchitect` |
 | Bounded execution | Structured `Task` |
+| Isolated long research | Durable `ResearchRun` |
 | Human decision | `TaskQuery` through the manager |
 | Durable outcome | Manager-owned `ObjectiveRecord` |
 | Living strategy | Manager-owned `PlanRecord` |
@@ -28,6 +29,86 @@ side channels, or authority:
 Keep plan, objective, digest, and history state local to the manager or agent
 that owns it. Send all inter-agent work through structured transport. Include
 the required task-local context in every delegation.
+
+## Use Hierarchical Objective Plans and the Work Ledger
+
+For an Objective, treat the current `PlanHierarchySnapshotV1` as the
+authoritative living strategy. Its `PlanHorizonRecordV1` entries separate the
+committed near-term horizon from forecast horizons. Its nested
+`PlanNodeRecordV1` entries represent subplans, milestones, discovery, delivery,
+and verification branches. Use `PlanRevisionRecordV1` to record why strategy
+changed and the next committed planning action.
+
+Activate this skill before `create_objective`,
+`update_objective_plan_hierarchy`, or `enqueue_objective_work_item`. Objective
+creation persists a partial two-horizon Plan. Later horizons may remain
+forecast, but material work requires an accepted or provisional goal contract,
+a committed horizon, an actionable or bounded discovery node, evidence and
+progress definitions, stop and replan triggers, review cadences, and the
+activated skill's content digest.
+
+Use `get_objective_plan_hierarchy` to inspect the current Plan revision and
+ledger. Use `update_objective_plan_hierarchy` for one compare-and-set revision.
+Do not fabricate owner, Objective, Plan, revision, or skill-digest fields; the
+runtime derives them from current trusted state and the current activation.
+
+The Plan tree is not an execution queue. Put intended bounded work in
+`ObjectiveWorkItemRecordV1` through `enqueue_objective_work_item`. The ledger
+may contain more work than current runtime capacity. Preserve semantic
+idempotency keys, dependencies, horizon order, stable queue rank, readiness,
+and source Plan revision. A work item may represent research, a specialist
+Task, an execution-control job or run, a managed service, a schedule, a durable
+wait, Plan review, result integration, or cancellation.
+
+Requested placement is intent, not authority. A worker or model cannot exempt
+itself from local accounting by naming a remote placement. Trusted admission
+assigns the execution class and opaque runtime reference. Objective-local work
+holds one of two default slots from admission until a fenced terminal result,
+cancellation acknowledgement, or lease expiry. Keep additional ready work in
+the ledger. Remote runtimes, execution control, external services, and passive
+waits enforce their own capacity and do not consume Objective-local slots. A
+remote-eligible item consumes a local slot when it falls back to local work.
+
+Do not widen the two-slot local limit informally. TeamArchitect may stage an
+inert `propose_objective_parallelism` record only after identifying independent
+streams, cost/time impact, and shared-resource risk. Tell the authenticated
+Objective owner to use `/accept objective-parallelism <objective_id>
+<proposal_id> <proposal_digest>`. Conversational confirmation is not authority.
+The accepted cap automatically returns to two at the next Plan revision, which
+requires a fresh proposal for any later increase.
+
+Promote long evidence work with `create_research_run`. Objective-linked
+research must use a Research work item that has passed Objective admission;
+never supply only an Objective id. Copy only the bounded
+question, current Objective/Plan slice, accepted evidence and procedures,
+budgets, capability-manifest digest, and stop conditions into the immutable
+ResearchRun context. The isolated worker gets a fresh Strands instance and no
+origin conversation or shared-memory channel. It returns a structured terminal
+capsule to TeamArchitect first. TeamArchitect validates provenance and fences,
+then decides whether the evidence changes the Plan, completes a node, cancels
+or replaces other ResearchRuns, or makes new work ready. Research, ordinary
+Tasks, execution-control work, managed services, schedules, and durable waits
+may coexist in the ledger; their placement and authority boundaries remain
+distinct.
+
+Choose a useful initial `capability_ids_json` subset when creating the run. The
+runtime binds trusted registry descriptor digests and exact tool names into the
+immutable context and revalidates them before each attempt. If the worker emits
+`needs_capability`, treat it as a checkpointed wait: inspect the exact support
+request, add only a requested capability already trusted and delegable by
+TeamArchitect, and resume as a new manifest revision and fenced attempt. An
+Objective-linked capability wait releases its local slot and must reacquire it
+before resume. New MCP, credential, attachment, protected-operation, or other
+authority stays on its existing reviewed path; a worker request never grants
+it.
+
+Worker terminal results enter the Objective integration queue. TeamArchitect
+reviews the result and current Plan revision before integration, replanning,
+cancellation, replacement work, milestone notification, or presentation to the
+originating user thread. Workers never write the originating conversation or
+mutate the Plan directly. The runtime queues a durable `research_presentation`
+Task for this review; if admission is full, the terminal event remains pending
+instead of being marked delivered.
 
 ## Select Task, Plan, or Objective
 
