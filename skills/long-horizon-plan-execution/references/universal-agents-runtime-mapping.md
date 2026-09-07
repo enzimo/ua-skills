@@ -52,6 +52,12 @@ ledger. Use `update_objective_plan_hierarchy` for one compare-and-set revision.
 Do not fabricate owner, Objective, Plan, revision, or skill-digest fields; the
 runtime derives them from current trusted state and the current activation.
 
+Manager custody does not grant access to other users' Objectives or Plans.
+Planning tools act for the canonical user bound to the active Task, including
+trusted periodic and result-review Tasks. If that identity is missing or the
+Objective belongs to another user or team, do not retry with invented owner,
+task, Plan, or manager identifiers.
+
 The Plan tree is not an execution queue. Put intended bounded work in
 `ObjectiveWorkItemRecordV1` through `enqueue_objective_work_item`. The ledger
 may contain more work than current runtime capacity. Preserve semantic
@@ -109,6 +115,20 @@ originating user thread. Workers never write the originating conversation or
 mutate the Plan directly. The runtime queues a durable `research_presentation`
 Task for this review; if admission is full, the terminal event remains pending
 instead of being marked delivered.
+
+One Research work item binds one ResearchRun. Retrying creation for that item
+does not request a second parallel run. Put a genuinely separate question or
+periodic occurrence in a new work item. Artifact inspection is limited to the
+active Task or ResearchRun directory; carry accepted evidence through the
+context manifest instead of reading another run's raw filesystem paths.
+
+Capability resume preserves the previous terminal capsule as a disk-backed
+continuation reference. Review and reuse its partial findings without treating
+them as verified merely because they survived a restart. Exhausted attempts
+and queued cancellation produce coordinator observations for TeamArchitect
+review, not fabricated worker results. The review Task and terminal receipt
+commit together; duplicate transport delivery is not a reason to create a
+second review or send a second user answer.
 
 ## Select Task, Plan, or Objective
 
