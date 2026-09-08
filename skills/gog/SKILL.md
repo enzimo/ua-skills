@@ -153,12 +153,25 @@ warning during consent. Do not describe an In Production refresh token as
 permanent: Google may still revoke it after password changes, manual
 revocation, prolonged inactivity, or other account security events.
 
-The primary broker page starts `gog auth add --manual --force-consent`, shows
-the Google authorization URL, and waits for the user to paste the complete
-localhost or 127.0.0.1 callback URL from their browser. This manual handoff
+Use the primary broker page to start `gog auth add --manual --force-consent`.
+Wait for its disabled **Wait...** button to become **Open**, then open Google
+in the new tab. Direct the user to paste the complete localhost or 127.0.0.1
+callback URL from their browser into the broker page. This manual handoff
 performs the same OAuth code exchange as an automatic desktop callback. The
 token lifetime is determined by Google's project publishing status when the
 token is issued, not by whether the callback URL is pasted manually.
+
+If `gog` reports `authorized as old@example.com, expected new@example.com`,
+explain that Google returned a different email than the one entered. If the
+user renamed that same account, explain that Google can keep reporting its
+old email to an existing linked app. Direct the user to restart `/auth google`
+with the address after `authorized as`, only if it belongs to their intended
+account, and use that authenticated address for explicit account selection.
+Otherwise, ask them to select the intended Google account in a fresh flow.
+Do not bypass the account check, relabel a token, or assume alias equivalence.
+For using the new address with the OAuth app, refer to
+[Google's renamed-account troubleshooting](https://support.google.com/accounts/answer/16521710?hl=en).
+Do not request the callback URL or raw CLI output in chat.
 
 The token JSON from `gog auth tokens export` is portable across machines, but
 it does not include the OAuth client credentials needed to refresh/use that

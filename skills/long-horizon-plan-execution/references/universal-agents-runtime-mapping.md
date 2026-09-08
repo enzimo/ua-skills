@@ -58,6 +58,13 @@ trusted periodic and result-review Tasks. If that identity is missing or the
 Objective belongs to another user or team, do not retry with invented owner,
 task, Plan, or manager identifiers.
 
+Standalone Plans retain the canonical owner of their trusted root Task. A task
+identifier also does not authorize reading its digest or promoting it to an
+Objective. On an Objective/Plan version conflict, reload current canonical state
+and reconsider the intended update; do not force an older whole record over it.
+Persistence and recovery errors are failures, not confirmation that a milestone
+or result was saved. Preserve useful evidence and report the failed operation.
+
 The Plan tree is not an execution queue. Put intended bounded work in
 `ObjectiveWorkItemRecordV1` through `enqueue_objective_work_item`. The ledger
 may contain more work than current runtime capacity. Preserve semantic
@@ -354,6 +361,13 @@ Request the exact missing authority only after the protected boundary exposes
 it. Resume from the structured authenticated decision without expanding its
 scope.
 
+A delegated worker's framework-tool interruption first reaches its parent.
+TeamArchitect may approve an exact one-use grant or permanent worker-type policy
+only within its active delegation envelope and own authority. Otherwise the
+original request reaches human review and resumes the original worker. Keep the
+parent waiting for its child result and record the permission dependency; do not
+copy the worker's receipt or restart the task as a new assignment.
+
 For a trusted operator-class denial, `request_access` may route an exact
 profile-eligible TeamArchitect action to the durable **Settings → Inbox**.
 This is a wait for an authenticated team administrator, not a role assignment
@@ -387,3 +401,9 @@ usage accounting, required-skill activation, and checkpoint persistence; it
 does not infer semantic health, choose abandonment, or coordinate distributed
 specialist budgets. Do not claim that a prompt, status signal, or skill
 activation automatically enforces the complete SOP.
+
+Transactional snapshot handoff and passing contention tests do not establish
+production readiness for unrestricted parallel workers. The runtime still needs
+single-writer manager commands, snapshot-writer incarnation fencing, atomic
+Objective-to-Research admission, enforced workspace isolation, and long-term
+storage policy. Keep concurrency within the operator-enabled, verified scope.

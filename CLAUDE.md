@@ -83,3 +83,11 @@ workflows; do not blur that converter boundary with a silent fallback.
     consumed, and revoke in technical details.
   - **Universal Agents Shell Handling:** For skills that run commands, instruct agents to load `shell-execution-workflows`. Keep commands non-interactive, do not manually prefix them with `rtk`, use `work_dir` and explicit timeouts, parallelize only independent commands, inspect separated output/error and termination metadata, and preserve broker ownership of credentialed CLIs and loopback services.
 - **Google Workspace Skill:** Keep `skills/gog/SKILL.md` aligned with installed `gog` command help, the broker's canonical auth methods, Google's External Testing 7-day refresh-token rule, and the `secure_cli` provider/action/params envelope, especially Gmail search/send params, `gog.exec` argv nesting, decoded-body behavior, and attachment-download behavior.
+  Preserve the account check when documenting renamed-account recovery; use
+  Google's reported email only when it belongs to the user's intended account.
+
+The `xurl` and `hf-cli` skills pair with Universal Agents bundled templates.
+Keep their broker envelopes and versioned command references synchronized with
+`../universal-agents`, using `python -m scripts.sync_hub_cli_skills --check`
+from that checkout. Authenticated operations use the broker; do not instruct
+agents to copy Sealbox values into their own shell environments.
