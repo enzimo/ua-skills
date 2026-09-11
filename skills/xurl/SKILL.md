@@ -8,6 +8,15 @@ description: Publishes text posts and checks account identity on X using the xur
 Use `secure-credential-workflows` for credential collection and binding, and
 `shell-execution-workflows` for ordinary command execution.
 
+For a specialist that needs X access, select the existing trusted
+`builtin:x_posting` capability. It permits only brokered `auth.status` and
+`post.create`. Follow `runtime-operations-workflows` to prepare its exact
+credential binding, collect the user's account selection/consent, and attach
+that capability through the normal review flow. Keep invocation approval
+separate. Do not request a delegation-envelope change to register X tools and
+do not ask the user to write slash commands. If the registry lacks this id,
+report the runtime version/registry gap; do not invent a registration request.
+
 1. Identify the intended X account and the exact post content from the task.
    Publish only within the user's requested scope.
 2. Check the existing credential catalog and broker authentication before asking

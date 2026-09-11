@@ -91,3 +91,7 @@ Keep their broker envelopes and versioned command references synchronized with
 `../universal-agents`, using `python -m scripts.sync_hub_cli_skills --check`
 from that checkout. Authenticated operations use the broker; do not instruct
 agents to copy Sealbox values into their own shell environments.
+
+Use the existing `builtin:x_posting` capability for reviewed specialist X access.
+Keep its credential binding and invocation consent separate; do not route missing
+X access through an unrelated delegation-envelope registration request.

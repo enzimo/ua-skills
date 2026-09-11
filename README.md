@@ -131,3 +131,7 @@ creating a duplicate.
 ## 📄 License
 
 This repository is licensed under the MIT License. Copyright (c) 2026 Enzimo.
+
+Use the existing `builtin:x_posting` capability for reviewed specialist X access.
+Keep its credential binding and invocation consent separate; do not route missing
+X access through an unrelated delegation-envelope registration request.
