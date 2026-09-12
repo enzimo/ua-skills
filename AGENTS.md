@@ -54,6 +54,9 @@ workflows; do not blur that converter boundary with a silent fallback.
    - Frontmatter name must be `hyphen-case`, and description must be in third-person without `<` or `>` characters.
    - For skills that use credentials, instruct agents to check hydrated CLI/runtime auth, environment variables, secret-file mounts, or credential stores before requesting new credentials. Never instruct agents to request secrets in chat; direct users to the runtime credential collection form when new credentials are required.
    - Keep `skills/gog/SKILL.md` aligned with installed `gog` command help, the broker's canonical auth methods, Google's External Testing 7-day refresh-token rule, and the `secure_cli` provider/action/params envelope, especially Gmail search/send params, `gog.exec` argv nesting, decoded-body behavior, and attachment-download behavior.
+     Preserve the distinction between a renamed account's provider-reported email
+     and a different account selected at consent; neither permits bypassing the
+     account check.
    - For skills that run commands in Universal Agents, route shared process behavior through the runtime `shell-execution-workflows` skill. Keep domain skills focused on their own command flags and policy caveats; do not duplicate or contradict the shared RTK, timeout, working-directory, result, or broker-boundary contract.
    - For user-facing authorization updates, name the concrete server, tool,
      agent, credential, or action. On denial or failure, state what did not
@@ -66,3 +69,13 @@ workflows; do not blur that converter boundary with a silent fallback.
    - Tag releases as `v<version>` with an exact match to `VERSION`.
    - Run the release tests and artifact build before pushing a release tag.
    - Publish deterministic per-skill ZIP archives and `SHA256SUMS` through the GitHub Actions release workflow.
+
+The `xurl` and `hf-cli` skills pair with Universal Agents bundled templates.
+Keep their broker envelopes and versioned command references synchronized with
+`../universal-agents`, using `python -m scripts.sync_hub_cli_skills --check`
+from that checkout. Authenticated operations use the broker; do not instruct
+agents to copy Sealbox values into their own shell environments.
+
+Use the existing `builtin:x_posting` capability for reviewed specialist X access.
+Keep its credential binding and invocation consent separate; do not route missing
+X access through an unrelated delegation-envelope registration request.

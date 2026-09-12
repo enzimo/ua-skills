@@ -27,13 +27,15 @@ Below is a summary of the skills currently available in this repository:
 
 | Skill | Description |
 | :--- | :--- |
+| **`xurl`** | Publishes X text posts through the credential broker and checks the selected account. |
+| **`hf-cli`** | Searches Hugging Face models/datasets and performs bounded brokered file transfers. |
 | **`brave-search`** | Uses Brave Search API for independent-index web search, LLM grounding context, freshness filters, Goggles ranking, and provider comparison workflows. |
 | **`build-project-room`** | Prepares gated project rooms for high-stakes, multi-source knowledge work from messy or conflicting source material. |
 | **`bw`** | Uses Bitwarden through the `bw` CLI or brokered secure CLI actions for auth, credential search, metadata lookup, and secret use. |
 | **`crawl4ai`** | Uses the Crawl4AI MCP server when the current agent has access, for rendered retrieval, extraction, screenshots, PDFs, and crawl workflows. |
 | **`long-horizon-plan-execution`** | Guides self-sustaining teams through goal contracts, independent Objective/Plan/Task lifecycles, evolving completion criteria, actionable-frontier planning, level-specific progress definitions, supervised replanning, selective alternatives, negotiated work sessions, adaptive OODA execution, recovery, and evidence-based closure. |
 | **`gh`** | Uses GitHub from a terminal-only environment through `gh` or brokered secure CLI actions for repositories, issues, PRs, Actions, releases, search, and API calls. |
-| **`gog`** | Uses Google Workspace through `gog` or brokered secure CLI actions for Gmail, Calendar, Drive, Docs, Sheets, Contacts, Admin, and related Google workflows, including durable OAuth publishing guidance, the primary manual web flow, the `secure_cli` provider/action/params envelope, decoded Gmail body, and attachment handling. |
+| **`gog`** | Uses Google Workspace through `gog` or brokered secure CLI actions for Gmail, Calendar, Drive, Docs, Sheets, Contacts, Admin, and related Google workflows, including durable OAuth publishing guidance, the primary manual web flow, renamed-account recovery, the `secure_cli` provider/action/params envelope, decoded Gmail body, and attachment handling. |
 | **`markitdown`** | Handles URLs, HTML, JSON/XML, images, audio, archives, Outlook, YouTube, plugins, OCR-related workflows, and other conversion needs outside Universal Agents' bundled local AnyDoc format set. |
 | **`searxng-search`** | Searches the web through a privacy-respecting SearXNG metasearch instance for web, news, image, video, and specialized queries. |
 | **`single-page-site`** | Builds Universal Agents-styled single-page articles, comparisons, how-tos, and interactive apps with optional structured UI and follow-up chat. |
@@ -129,3 +131,7 @@ creating a duplicate.
 ## 📄 License
 
 This repository is licensed under the MIT License. Copyright (c) 2026 Enzimo.
+
+Use the existing `builtin:x_posting` capability for reviewed specialist X access.
+Keep its credential binding and invocation consent separate; do not route missing
+X access through an unrelated delegation-envelope registration request.
