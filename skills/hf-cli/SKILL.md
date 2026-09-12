@@ -10,6 +10,12 @@ Use `shell-execution-workflows` for CLI execution and
 The executable is `hf`, supplied by `huggingface_hub`; do not install a package
 named `hf-cli` or run a runtime self-update.
 
+For a reviewed capability attachment, use its returned
+`credential_binding_id` in place of `credential_key` in every broker request.
+The broker resolves the selected account internally. Supply exactly one
+selector; template names are not necessarily catalog keys. A credential-key
+mismatch does not by itself justify repeating credential consent.
+
 1. Choose the requested repository, type, operation, and artifact. Search public
    models or datasets with bounded results. Use `--json` for structured output:
 
