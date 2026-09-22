@@ -382,3 +382,7 @@ decision.
 - Stop new work and reconcile in-flight effects on cancellation.
 - Preserve useful partial evidence without representing partial success as
   complete success.
+
+For ordinary recurring specialist tasks in Universal Agents, follow the automatic
+worker and readiness procedure in `references/universal-agents-runtime-mapping.md`.
+Keep protected Objective work sessions on their existing workflow.

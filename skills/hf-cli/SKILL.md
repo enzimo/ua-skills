@@ -42,6 +42,19 @@ mismatch does not by itself justify repeating credential consent.
    check, because the upstream `hf upload` CLI also creates missing repositories
    and branches. Report the returned commit ID and URL.
 
+When a broker result has `failure_stage=credential_resolution`, read its
+`error_code`, `required_field`, `action_owner`, and `next_action`. If
+`provider_operation_attempted=false`, explain that the tool operation was not
+attempted; do not claim the external service rejected authentication. A missing
+field means the selected credential is incompatible (X needs secret
+`oauth_json`; Hugging Face needs secret `api_token`). Ask the owner to select or
+create the matching credential through the secure workflow. Source configuration,
+read failures, or empty values go to TeamLead for diagnosis and operator help
+when needed. Correct only issues within existing authority; these diagnostics
+grant no permission. Preserve completed setup, never guess credential keys or
+repeat consent/attachment/restart indiscriminately, and do not retry the unchanged
+request when `retry_safe=false`. Never request or transmit secrets through chat.
+
 On revision conflict, inspect the remote change and reassess the requested upload.
 On an unknown write outcome, reconcile remote commits before another write.
 On credential denial, follow the exact trusted access-request workflow.

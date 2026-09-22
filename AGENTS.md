@@ -2,6 +2,13 @@
 
 This file guides AI agents when operating within the `ua-skills` repository.
 
+Keep Crawl4AI setup aligned with `activate_mcp_connection`: installation and
+discovery can require separate administrator Inbox decisions. Do not describe a
+raw pending permission request as an actionable Inbox item.
+For stored Crawl4AI tokens, use the existing MCP credential-binding consent flow
+before activation. Never treat an OpenShell lease as MCP authority or copy its
+token into configuration.
+
 ## Repository Purpose
 
 This repository stores and manages Universal Agents (UA) Agent Skills under the `skills/` directory.
@@ -25,7 +32,11 @@ outcome.
 Keep its runtime mapping aligned with Universal Agents Objective work sessions,
 including explicit acceptance, per-session activation, built-in and private
 profile selection, exact custom-profile proposal acceptance, safe-boundary
-yield, and OODA checkpoint persistence.
+yield, OODA checkpoint persistence, and closure of each session's Task without
+keeping it waiting for the next timer tick. Distinguish raw permission requests
+from human interaction records actually available in Inbox.
+Keep completion-failure recovery explicit: preserve checkpoints, verify the saved
+Objective policy/schedule link and resume a blocked Objective after repair.
 Keep selective solution variation bounded and discretionary. Treat candidate
 evaluations and selections as advisory records rather than workspace isolation,
 effect authority, integration, or final verification.
@@ -79,3 +90,45 @@ agents to copy Sealbox values into their own shell environments.
 Use the existing `builtin:x_posting` capability for reviewed specialist X access.
 Keep its credential binding and invocation consent separate; do not route missing
 X access through an unrelated delegation-envelope registration request.
+
+Keep the long-horizon runtime mapping aligned with automatic scheduled workers,
+prospective tool readiness, and schedule-specific access approval. Preserve the
+separate protected Objective work-session workflow.
+Treat automatic-start eligibility as TeamLead-managed through bounded runtime
+settings; retain operator control of explicit denies, the kill switch and limits.
+Keep memory timers on the local MemReviewAgent scheduler and document the offline
+upgrade for old TeamArchitect timers. Preserve queued review records; distinguish
+them from claimed jobs, saved worker tasks, and pending NATS deliveries.
+Do not infer absent delegation boundaries from a request that failed to match.
+Keep review-batch continuation, actionable Inbox status and tool-returned workflow
+links synchronized with Universal Agents' runtime mapping.
+
+Keep delegation-boundary comparison and unfinished review-step correction aligned
+with the runtime mapping. Preserve saved Inbox reviews across workflow-link errors
+and use tool-returned workflow URLs instead of guessing runtime-skill docs pages.
+
+The runtime mapping covers duplicate permission reviews resolved from existing
+access. Continue from the verified current result without asking for another
+approval or treating the resolution as new access or an expiry extension.
+
+Keep the runtime mapping aligned with quiet recurring checks that preserve
+conversation history, explicit follow-up response obligations, and the separate
+built-in guidance and saved-workflow progress URLs.
+
+Keep permission-review guidance aligned with the shared Inbox pending-review
+records. Raw historical requests must not reopen completed owner decisions.
+
+Keep abandoned-review guidance aligned with runtime retirement and
+InternalImprovementAgent's metadata-only inspection and permission-checked archive
+and purge tools. Preserve unknown outcomes, retention, live/saved-worker protection,
+and explicit offline retirement; never recommend deleting timers or replaying
+expired reviews to bypass upgrade checks.
+
+Keep runtime inspection guidance aligned with paged schedule/review metadata and
+bounded exact-ID detail reads. Do not prescribe Python environments for reading
+routine inspection results or treat a pending-job page as the complete queue.
+
+Keep task-backlog guidance aligned with the per-agent sections in Settings → Tasks.
+Select the affected agent before purging its queue. Distinguish queue purge
+from stopping all work, and preserve owner scope, cancellation history and schedules.
+Treat a missing control reply as unconfirmed; inspect current state before retrying.

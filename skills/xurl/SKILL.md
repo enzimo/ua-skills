@@ -49,6 +49,19 @@ user to drive internal permission commands.
 5. Report the returned post URL and ID as completion evidence. A draft or a
    successful authentication check is not publication.
 
+When a broker result has `failure_stage=credential_resolution`, read its
+`error_code`, `required_field`, `action_owner`, and `next_action`. If
+`provider_operation_attempted=false`, explain that the tool operation was not
+attempted; do not claim the external service rejected authentication. A missing
+field means the selected credential is incompatible (X needs secret
+`oauth_json`; Hugging Face needs secret `api_token`). Ask the owner to select or
+create the matching credential through the secure workflow. Source configuration,
+read failures, or empty values go to TeamLead for diagnosis and operator help
+when needed. Correct only issues within existing authority; these diagnostics
+grant no permission. Preserve completed setup, never guess credential keys or
+repeat consent/attachment/restart indiscriminately, and do not retry the unchanged
+request when `retry_safe=false`. Never request or transmit secrets through chat.
+
 On `outcome_unknown`, reconcile the account's posts before another publish.
 Do not automatically retry; a timeout can follow a successful remote post.
 On `account_busy`, wait until the current account operation completes before

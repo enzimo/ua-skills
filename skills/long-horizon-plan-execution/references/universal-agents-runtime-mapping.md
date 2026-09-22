@@ -30,6 +30,35 @@ Keep plan, objective, digest, and history state local to the manager or agent
 that owns it. Send all inter-agent work through structured transport. Include
 the required task-local context in every delegation.
 
+A successful `TaskStatus` refresh confirms liveness, not progress or approval.
+The runtime spaces status probes using the last successful probe; do not create
+replacement tasks just because a worker is waiting. A missing reply is a
+transport or responsiveness observation, not evidence that the task completed.
+For credential binding, emit the exact prepared consent request once. The
+runtime routes it to the configured gateway even when a worker requested the
+setup; the target agent type identifies who will use the binding. Wait for its
+typed broker result instead of treating tool approval as completed credential
+selection or creating another binding plan while consent is pending.
+
+A published access workflow belongs to its source Task. Staging its requests or
+closing the local execution plan does not finish that workflow. Follow
+`runtime-operations-workflows`, keep review steps waiting, and inspect every
+saved review outcome when the same task resumes. Approval permits only the exact
+reviewed change; it does not prove execution. Complete steps after verifying
+their results, or record a concrete failure and recovery action. If an older
+source task has already ended, inspect its workflow from the follow-up task and,
+when the user requests continuation, plan only the remaining work. Keep completed
+results and check uncertain external effects before another attempt.
+
+Use the `review_url` returned by workflow submission or inspection for live
+progress links. Never use a skill documentation address as the workflow link.
+Keep independent administration reviews in the original task's batch and check
+all outcomes before reporting. Distinguish an escalated check from an actual
+Inbox review: `action_required_request_ids` or `human_review_submitted=false`
+requires the lead to prepare a review, not to wait for the user. Use the exact
+`delegation_checks` failure to distinguish the lead's own missing tool access
+from inadequate worker delegation boundaries. Respect existing rejections.
+
 ## Use Hierarchical Objective Plans and the Work Ledger
 
 For an Objective, treat the current `PlanHierarchySnapshotV1` as the
@@ -302,6 +331,21 @@ remains. Record Observe, Orient, Decide, Act, Objective health, evidence delta,
 completed and next subgoals, blockers, artifacts, and in-flight effects. Do not
 turn activity counts into an invented completion percentage.
 
+Finish each bounded session with a terminal `task_response` after saving its
+checkpoint. Keep unfinished work in the durable Objective and Plan for the next
+session; do not keep the current Task waiting for a future timer tick. Report a
+blocked session honestly without claiming that its remaining subgoals succeeded.
+Use a fresh interactive conversation for a repair that requires human input when
+the background Task has no external reply route. Verify the actual human
+interaction record before telling the owner to approve something in Inbox.
+
+If session completion reports a policy, schedule or owner verification failure,
+inspect the saved work policy, its linked schedule and the saved checkpoint.
+Do not recreate a valid schedule merely because gateway delivery metadata is
+missing. The failed Task releases its slot, but normal failure review can mark
+its Objective blocked. After verifying or repairing the link, explicitly resume
+the existing Objective if needed; do not erase checkpoints or bypass ownership.
+
 The runtime withholds the configured turn, token, and checkpoint-tool reserves
 from material work. If a work invocation reaches a safe boundary without a
 checkpoint, it performs a narrow checkpoint-only invocation. A deterministic
@@ -368,6 +412,14 @@ original request reaches human review and resumes the original worker. Keep the
 parent waiting for its child result and record the permission dependency; do not
 copy the worker's receipt or restart the task as a new assignment.
 
+An agent may recur in the task hierarchy: TeamArchitect can delegate a job whose
+specialist asks TeamArchitect for a protected setup step. Keep that lineage intact;
+the request returns through distinct parent tasks to human review. TeamArchitect
+cannot approve its own request. A missing requester route is a task failure,
+not an authorization decision. Inspect the saved task and pending review before
+retrying; do not recreate the permission request or copy an approval receipt to
+another task merely because delivery failed.
+
 For a trusted operator-class denial, `request_access` may route an exact
 profile-eligible TeamArchitect action to the durable **Settings → Inbox**.
 This is a wait for an authenticated team administrator, not a role assignment
@@ -407,3 +459,167 @@ production readiness for unrestricted parallel workers. The runtime still needs
 single-writer manager commands, snapshot-writer incarnation fencing, atomic
 Objective-to-Research admission, enforced workspace isolation, and long-term
 storage policy. Keep concurrency within the operator-enabled, verified scope.
+
+## Recurring specialist work
+
+For an ordinary user-owned scheduled root task, select the named worker type and
+configure its automatic worker policy with `configure_scheduled_worker`. Use
+`create_scheduled_job` with `target_agent_type`, `worker_policy_json`, and
+`requirements_json` when creating the job. Keep known-blocked jobs as inactive
+drafts. Declare exact trusted capability IDs and operations; mark branch-dependent
+needs conditional and leave `runtime_discovery` enabled for open-ended work.
+
+Use `prepare_scheduled_job_access` to check requirements and
+`authorize_scheduled_job_access(schedule_id, expected_revision)` to let TeamLead
+establish exact schedule-specific invocation access within its own authority and
+the operator delegation envelope. Recheck readiness before activating the draft.
+Use the returned policy revision for edits. Convert exact agent-ID targets only
+with explicit `convert_exact_target=true`; let live claims finish under their
+prior revision. Keep protected Objective and infrastructure schedules on their
+existing purpose-specific workflows.
+
+Inspect `inspect_scheduled_worker` after an unclaimed-occurrence review. Resolve
+policy, type, readiness, or admission blockers before attempting another manual
+start. Distinguish startup acknowledgement, transport readiness, durable admission,
+and a terminal task result. A worker may retire between runs; retain the schedule
+policy so the controller can cover the next occurrence. Do not publish a second
+copy of a scheduled payload to NATS.
+
+When execution discovers missing permission, use a trusted denial receipt with
+`request_access`. For exact framework operations, use
+`request_framework_tool_access` when the permission must be checked explicitly.
+Let TeamLead review the scheduled root request. Use `schedule` duration for
+recurring approval; a broad agent-type grant is not a substitute. For missing
+attachments or credentials, use `manager_escalation` with the schedule and trusted
+capability ID. Wait through the existing task workflow and verify the actual
+operation after repair. Never treat a review message as authority.
+
+Change shared rules through `agent.schedule_workers.defaults.<rule>` for the
+team or `agent.schedule_worker_rules.<rule>` with agent-type scope. As TeamLead,
+use `inspect_scheduled_worker` to check custom specialist eligibility, including
+on unbound drafts. Check `eligibility.allowed_by_default_policy` before changing
+eligibility: the runtime records current specialist definitions once per team and
+permits their local startup by default. Preserve existing disables and operator
+denies. For a new or changed definition that lacks permission, add the registered
+type through the bounded `agent.schedule_workers.eligible_agent_types` setting,
+preserving existing entries, then prepare access and configure the policy. Keep
+startup permission separate from tool access.
+
+Check `worker_configuration_supported` before changing a timer. Run new and
+upgraded system memory-review timers through the local scheduler with MemReviewAgent;
+do not send the scheduled payload over NATS. For old TeamArchitect-targeted memory
+timers, direct the operator to the offline `scripts/upgrade_local_schedules.py`
+procedure instead of creating a replacement timer. Preserve queued review jobs;
+they alone do not block the upgrade. Use the preview's exact IDs to resolve claimed
+jobs, including expired claims with uncertain outcomes, and saved unfinished worker
+tasks. Require stopped team runtimes and completed old NATS deliveries before apply.
+Do not delete records or mark reviews complete to clear an upgrade check. Preserve
+system-schedule edit permissions and verify actual review jobs and results.
+Treat `no_matching_delegation_envelope` as missing coverage for the request,
+not proof that all boundaries are absent. Read saved administration outcomes;
+reuse pending reviews and respect rejected requests. Read the scheduled-worker repair
+reference in `runtime-operations-workflows` for tuning and completion checks.
+Keep explicit operator denies, the kill switch, quotas, leases and timing
+ceilings outside these edits.
+Suspend automatic startup with the policy's `enabled=false`; use the separate
+schedule or task controls when the intent is to pause work or cancel execution.
+
+Use Settings → Tasks to inspect an owner's unfinished work grouped by agent,
+or `/stop` for the TeamLead's task trees. When a queue is full, select the affected
+agent. Distinguish **Purge this queue**, which preserves that agent's current
+work, from `/stop all`, which also cancels current work. Remove only work the owner
+has chosen to cancel. Preserve history and future schedules, verify freed capacity,
+and resolve the schedule's existing authenticated review separately. Do not infer
+invalid tasks from the count alone or delete runtime database rows.
+Treat a control timeout as an unconfirmed outcome. Refresh Tasks or run `/stop`
+before retrying removal; do not infer disconnection or repeat a purge automatically.
+
+For a task queue safety notice, inspect the named task's recorded dependency.
+The runtime removes invalid queue entries while preserving tasks and permissions,
+and pauses a final review that has no recorded reason to wait. Resolve genuine
+dependencies through their normal workflows. Do not resend the original request,
+duplicate a scheduled occurrence, or delete database rows to bypass the wait.
+
+
+### Compare delegation boundaries and correct review steps
+
+Call `inspect_delegation_boundaries` before choosing among current delegation rules.
+Compare worker types, exact resource attributes, actions, scopes and grant limits.
+Explain meaningful differences and recommend the smallest relevant change; do not
+ask the user to select unexplained IDs. Direct administrators to Settings →
+Permissions → Administration → Active delegation boundaries. Treat applicability
+as selection information, then verify actual operation coverage separately.
+
+Use `permission.delegation_envelope.activate` for a delegation review step. Correct
+mistaken expected actions with `revise_access_workflow_step` before linking reviews,
+while retaining the source workflow and completed work. If a submitted review
+returns `workflow_linked=false`, retain its Inbox URL, correct the step and resubmit
+the same idempotency key to link the existing request. Never equate a linking error
+with failure to save the request. For an already-ended source task, follow the
+existing remaining-work recovery procedure rather than impersonating that task.
+
+Link the tool-returned workflow `review_url`. Never infer a published documentation
+URL from a runtime skill name; use only pages confirmed by a documentation listing.
+
+When a persistent-permission review closes with
+`persistent_policy_already_active`, the runtime found matching existing access.
+Do not ask the user to approve or reject that duplicate again. Read the persisted
+result and continue only when its current `authority_granted` check succeeds.
+The resolution did not create new access or extend expiry. A terminal review
+alone does not prove that the protected operation can now run.
+
+Recurring timer runs may share conversation history without being follow-up
+requests. A successful no-change check may complete quietly; explicit follow-ups
+and delegated subtasks must still return results. Diagnose suppression refusals
+using the runtime's task, conversation, schedule and follow-up IDs.
+Built-in procedural guidance is served at
+`/docs/skills/runtime-operations-workflows?source=bundled`. Use the trusted internal
+website base URL. A saved workflow's progress uses its returned `/workflows/<id>`
+URL, never the documentation URL.
+
+Inbox and Permissions → Needs Approval list saved actionable reviews, not all
+historical permission requests. An empty Inbox is not evidence that every raw
+pending/escalated request has authority or needs another approval. Inspect the
+saved review and current access. Once owner review moves to administrator review,
+do not recreate the owner decision. Use the existing administrator review;
+respect closed outcomes. Internal scheduled/recovery permission reviews may have
+no gateway chat request and resume through their persisted task wake.
+
+
+For abandoned expired review claims, preview the offline upgrade with
+`--retire-expired-review-claims`. Apply only after stopping all team runtimes,
+finishing old broker deliveries, and taking a full backup. The option preserves
+content and marks the records inactive with an unknown outcome; it does not replay
+or delete them. Keep live claims and saved unfinished or unsupported workers as
+blockers. Let InternalImprovementAgent inspect cleanup metadata, archive exact IDs,
+and request access with the trusted denial receipt when needed. Purge only archived
+content after retention. Preserve recurring memory schedules and check existing
+cleanup permission request IDs before asking again.
+
+### Inspect schedules and reviews without large inventories
+
+- Use `get_schedule_telemetry()` for counts. Request `include_schedules=true`
+  only when timing/claim metadata is needed; use `schedule_id` for one timer.
+- Use `list_scheduled_jobs(limit=20, offset=0)` for summary pages and follow
+  `next_offset`. Supply `schedule_id` to read one schedule's full details in
+  bounded excerpts. Pass `detail.next_offset` as `details_offset` for the next
+  excerpt, keeping `detail.sha256` unchanged; restart if it changes.
+- Read supplied review IDs with `get_memory_review_job(review_job_id=...)`.
+  Follow its `detail.next_offset` as `offset`, checking the same digest. Use
+  `list_pending_memory_review_jobs` only for pending metadata for the current
+  team and worker type. Follow `next_offset`; never treat one page as all work.
+- Restart pending-job pagination after job mutations. Do not create a Python
+  environment or open raw database files to read ordinary inspection results.
+  Treat reads as evidence only; preserve claim ownership and exact permission
+  checks before processing work or changing schedules.
+
+### Inspecting and managing the current user's queue
+
+Use `list_task_queue` for your active execution roots, queue positions, blockers
+and delegated children. Read task history before treating two roots as
+duplicates. Use `control_task_queue` to pause runnable queued work, stop a
+confirmed duplicate, or resume the retained task once its blockers are resolved.
+Resume does not approve permissions, answer pending questions, or override
+budget pauses. Report the blocker and exact task ID instead of creating another
+copy. Self-status, own tool-result inspection and current-task history notes do
+not require a separate approval under the default policy.

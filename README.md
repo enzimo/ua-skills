@@ -32,7 +32,7 @@ Below is a summary of the skills currently available in this repository:
 | **`brave-search`** | Uses Brave Search API for independent-index web search, LLM grounding context, freshness filters, Goggles ranking, and provider comparison workflows. |
 | **`build-project-room`** | Prepares gated project rooms for high-stakes, multi-source knowledge work from messy or conflicting source material. |
 | **`bw`** | Uses Bitwarden through the `bw` CLI or brokered secure CLI actions for auth, credential search, metadata lookup, and secret use. |
-| **`crawl4ai`** | Uses the Crawl4AI MCP server when the current agent has access, for rendered retrieval, extraction, screenshots, PDFs, and crawl workflows. |
+| **`crawl4ai`** | Coordinates MCP setup, stored-credential consent and Inbox review, then uses the available Crawl4AI tools for rendered retrieval, extraction, screenshots, PDFs, and crawl workflows. |
 | **`long-horizon-plan-execution`** | Guides self-sustaining teams through goal contracts, independent Objective/Plan/Task lifecycles, evolving completion criteria, actionable-frontier planning, level-specific progress definitions, supervised replanning, selective alternatives, negotiated work sessions, adaptive OODA execution, recovery, and evidence-based closure. |
 | **`gh`** | Uses GitHub from a terminal-only environment through `gh` or brokered secure CLI actions for repositories, issues, PRs, Actions, releases, search, and API calls. |
 | **`gog`** | Uses Google Workspace through `gog` or brokered secure CLI actions for Gmail, Calendar, Drive, Docs, Sheets, Contacts, Admin, and related Google workflows, including durable OAuth publishing guidance, the primary manual web flow, renamed-account recovery, the `secure_cli` provider/action/params envelope, decoded Gmail body, and attachment handling. |
@@ -135,3 +135,51 @@ This repository is licensed under the MIT License. Copyright (c) 2026 Enzimo.
 Use the existing `builtin:x_posting` capability for reviewed specialist X access.
 Keep its credential binding and invocation consent separate; do not route missing
 X access through an unrelated delegation-envelope registration request.
+
+Keep the long-horizon runtime mapping aligned with automatic scheduled workers,
+prospective tool readiness, and schedule-specific access approval. Preserve the
+separate protected Objective work-session workflow.
+Treat automatic-start eligibility as TeamLead-managed through bounded runtime
+settings; retain operator control of explicit denies, the kill switch and limits.
+The runtime mapping runs memory timers locally with MemReviewAgent and documents
+the offline upgrade for old TeamArchitect timers. Queued review records survive
+the upgrade; claimed reviews and saved worker tasks require outcome checks first.
+The mapping also checks saved approval outcomes before proposing repairs.
+It also keeps review batches on one task and distinguishes missing review items
+from decisions still awaiting the user.
+
+Keep delegation-boundary comparison and unfinished review-step correction aligned
+with the runtime mapping. Preserve saved Inbox reviews across workflow-link errors
+and use tool-returned workflow URLs instead of guessing runtime-skill docs pages.
+
+The runtime mapping covers duplicate permission reviews resolved from existing
+access. Continue from the verified current result without asking for another
+approval or treating the resolution as new access or an expiry extension.
+
+Keep the runtime mapping aligned with quiet recurring checks that preserve
+conversation history, explicit follow-up response obligations, and the separate
+built-in guidance and saved-workflow progress URLs.
+
+Keep permission-review guidance aligned with the shared Inbox pending-review
+records. Raw historical requests must not reopen completed owner decisions.
+
+The long-horizon runtime mapping also covers abandoned memory-review claims:
+explicit offline retirement, retained unknown outcomes, and InternalImprovementAgent
+cleanup with permission checks and retention.
+
+The long-horizon runtime mapping includes bounded schedule and memory-review
+inspection: use summaries for discovery and exact IDs for paged source details.
+
+Task-backlog recovery uses owner-scoped Settings task controls. Queue purge keeps
+current work; `/stop all` cancels it too. Both retain future schedules and history.
+After a control timeout, inspect current task state before retrying cancellation.
+Bounded Objective sessions close their Tasks after checkpointing; remaining plan
+work belongs to later sessions. A raw permission request does not prove Inbox delivery.
+
+For session-completion verification failures, inspect the saved policy and schedule
+link, preserve checkpoints, and explicitly resume a blocked Objective after repair.
+
+
+Task-backlog guidance uses Settings → Tasks to inspect work grouped by running
+agent. **Purge this queue** applies to the selected agent's queued and waiting work
+and preserves current work. /stop continues to inspect the TeamLead task trees.

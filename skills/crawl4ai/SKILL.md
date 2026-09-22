@@ -19,12 +19,30 @@ agent. Installation, initial discovery, and attachment to an agent type are
 separate authorities. Do not ask for a restart; approved, discovered, and
 attached MCP connections become available at a safe turn boundary.
 
-The shipped Crawl4AI connection uses operator-configured authentication. After
-the connection itself is approved, submit the exact
-`mcp.connection.discover` denial receipt for authenticated same-team
-administrator review. Wait for the persisted decision, retry activation, and
-then request the separate owner-reviewed attachment. An empty permission view
-for a non-administrator does not mean the discovery request disappeared.
+For the shipped connection with operator-configured authentication, inspect
+`list_mcp_connections` and call `activate_mcp_connection` once for the existing
+ID when the user requests setup. Let that tool coordinate separate installation,
+discovery, and attachment decisions. Installation and discovery use authenticated
+same-team administrator review in Settings > Inbox; approval resumes the same
+setup call. Do not submit activation receipts through another permission tool.
+If the tool reports that no Inbox approval was opened, state that the approval
+policy needs administrator attention. Do not equate a raw pending permission
+record with an actionable Inbox review.
+
+If the existing connection needs authentication and the credential is already
+stored, have TeamArchitect load `secure-credential-workflows` and call
+`plan_credential_binding` with the existing capability id, the attached target
+agent type, `provider="mcp"`, `actions=["mcp.connect", "mcp.invoke"]`, and
+`mcp_authentication={"field_name": "api_token", "header_name": "Authorization",
+"scheme": "bearer"}`. Request credential-binding authorization when enabled,
+then prepare broker consent and wait for the authenticated user to select the
+stored credential. After the structured success result, activate the same
+connection to discover and attach tools. Do not copy the token, edit YAML, or
+create a duplicate connection. Do not treat an OpenShell lease as MCP consent.
+Treat `active` as installation state and `operator_configured` as the original
+configuration, not proof of successful authentication or a reason to refuse
+the stored-credential workflow. If the binding expires, is revoked or no longer
+matches the endpoint or credential revision, obtain fresh consent.
 
 ## Available Tools
 
@@ -93,11 +111,13 @@ provides a supported field or declarative hook for them.
   is available. Tell the user whether the server is waiting for approval, the
   server is approved but this agent does not yet have access, the server's tool
   list has not been checked, the server is unavailable, or the current user
-  cannot approve it. If an administrator must approve the tool-list check, tell
-  the user to open **Settings > Needs Approval**. After approval, retry the
-  connection and request the separate agent access. Do not restart to refresh
-  it.
-- Authentication or connection failure: report that the named Crawl4AI MCP
+  cannot approve it. When the activation tool opens administrator review, direct
+  the authorized administrator to **Settings > Inbox** and let approval resume
+  setup. If review is unavailable, report the tool's reason and next step. Do
+  not restart merely to refresh approved tools.
+- Authentication failure with a stored token: use the approved binding flow
+  above before asking for another credential or operator configuration changes.
+- Other authentication or connection failure: report that the named Crawl4AI MCP
   server could not complete the requested action, state the reported reason,
   and suggest retrying or asking an administrator to check the server. Preserve
   the technical error details outside the plain-language summary.
