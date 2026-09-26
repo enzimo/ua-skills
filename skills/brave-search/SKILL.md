@@ -58,24 +58,31 @@ prefix; the shell tool selects RTK rewrite or proxy mode automatically. Use an
 explicit timeout for HTTP calls and inspect the separate output/error,
 termination reason, RTK mode, and warning fields.
 
-Secret-like environment variables are stripped from Universal Agents shell
-children unless the operator explicitly allowlists them. Therefore, do not
-assume `${BRAVE_SEARCH_API_KEY}` reaches `curl`. Prefer the artifact tools or a
-broker-owned `secure_requests` action for authenticated Brave calls. Never put
-the key directly in the command string.
+In Universal Agents the Brave key is never in any environment, so `curl` in
+the shell cannot authenticate to Brave. Use the artifact tools. For a Brave
+endpoint they do not cover, send a brokered request instead:
+`secure_cli(provider="secure_requests", action="get", params={"url":
+"https://api.search.brave.com/res/v1/..."})`. It belongs to the built-in web
+API tool `http:brave-search`; the request carries no key and no `${...}`
+placeholder, and the broker adds the linked key in the `X-Subscription-Token`
+header. Never put a key in a command string.
 
 ## Credential Handling
 
-Prefer Universal Agents Brave tools when available because runtime credentials
-may already be hydrated there. Outside the Universal Agents shell boundary, a
-trusted local fallback may use an existing `BRAVE_SEARCH_API_KEY` environment
-variable or a credential-store value wired into the runtime.
+In Universal Agents the Brave key is the linked account of `http:brave-search`
+in the credential store: the person's own key first, then the team's.
+Onboarding saves the Brave key typed there as the team's key. The artifact
+tools and brokered requests send no key; the broker adds it. `http:brave-search`
+is part of internet access, so agents need no grant unless someone blocked it.
 
 Do not ask the user to paste Brave API keys into chat, code, or command
-examples. If no usable key is hydrated, instruct the user to provide the Brave
-Search API key through the runtime credential collection form, then retry with
-the secret exposed only as `BRAVE_SEARCH_API_KEY` or an equivalent secret-file
-mount.
+examples. If a Brave tool reports `account_link_missing`, tell the user that a
+team administrator links the team's key with `/link http:brave-search team`,
+or that they can link their own with `/link http:brave-search`; then retry. If
+it reports `access_denied`, someone blocked Brave for this work: use another
+search provider and say so. `BRAVE_SEARCH_API_KEY` is not a Universal Agents
+setting (startup refuses it); the shell examples below are only for running
+outside Universal Agents with your own key in that variable.
 
 ## Brave Web Search
 
@@ -101,7 +108,7 @@ Common parameters:
   `discussions`.
 - `goggles`: hosted Goggle URL or inline Goggle rules.
 
-Shell fallback:
+Shell fallback outside Universal Agents only:
 
 ```bash
 curl -s "https://api.search.brave.com/res/v1/web/search" \
@@ -137,7 +144,7 @@ Common parameters:
 - `context_threshold_mode`: `strict`, `balanced`, `lenient`, or `disabled`.
 - `freshness`: `pd`, `pw`, `pm`, `py`, or a custom date range.
 
-Shell fallback:
+Shell fallback outside Universal Agents only:
 
 ```bash
 curl -s "https://api.search.brave.com/res/v1/llm/context" \

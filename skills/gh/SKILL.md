@@ -107,6 +107,10 @@ Common broker workflows:
 
 Credential handling:
 
+- The broker runs `gh` only with the requesting person's own GitHub sign-in
+  (made with `/link cli:github web` or `/link cli:github`); it never uses another
+  person's sign-in or a token from environment variables. A request for nobody
+  in particular is refused.
 - Check broker auth first with `auth.status` when `secure_cli` is available.
 - Use `auth.login.credential` when an existing credential-manager item is
   available by ID/name, or after a metadata search identifies the right item.
@@ -114,9 +118,12 @@ Credential handling:
   available and broker policy allows it.
 - Do not ask the user to paste GitHub tokens, passwords, recovery codes, or
   credential-manager secrets into chat.
-- If new or refreshed GitHub credentials are required, direct the user to the
-  credential collection form with `/auth github web` or `/auth github`; include
-  needed scopes such as `read:project` in the instruction.
+- If new or refreshed GitHub credentials are required, ask the user to sign in
+  with `/link cli:github web` (browser sign-in with MFA) or `/link cli:github`
+  (paste a token); include needed scopes such as `read:project` in the
+  instruction. Suggest `/link cli:github web-all` only after the user approves
+  high-privilege scopes. A GitHub sign-in is always personal: there is no team
+  GitHub account.
 
 Failure discipline:
 
@@ -130,8 +137,9 @@ Failure discipline:
   intended endpoint fully inside `params.path`. If it still returns root
   metadata, stop and explain the tool-shape limitation instead of cycling
   through endpoint/path permutations.
-- If the broker returns `error_code=auth_required`, ask the user to run
-  the credential collection form with `/auth github web` or `/auth github`.
+- If the broker returns `error_code=auth_required` (`user_action`
+  `/link cli:github`), ask the user to run `/link cli:github web` or
+  `/link cli:github`.
 
 Use the raw `gh` guidance below only when direct shell access to authenticated
 `gh` is available.

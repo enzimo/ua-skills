@@ -5,45 +5,57 @@ description: Publishes text posts and checks account identity on X using the xur
 
 # X posting
 
-Use `secure-credential-workflows` for credential collection and binding, and
-`shell-execution-workflows` for ordinary command execution.
+Use `secure-credential-workflows` for credential collection and account links,
+and `shell-execution-workflows` for ordinary command execution.
 
-For a specialist that needs X access, select the existing trusted
-`builtin:x_posting` capability. It permits only brokered `auth.status` and
-`post.create`. Follow `runtime-operations-workflows` to prepare its exact
-credential binding, collect the user's account selection/consent, and attach
-that capability through the normal review flow. Keep invocation approval
-separate. Do not request a delegation-envelope change to register X tools and
-do not ask the user to write slash commands. If the registry lacks this id,
-report the runtime version/registry gap; do not invent a registration request.
+X is the catalog tool `cli:x`: brokered `auth.status` (read) and `post.create`
+(write). An agent uses it once it holds access: checking the account needs
+`cli:x` at `read`, posting needs `write`. If `secure_cli` or `cli:x` is not in
+your tools, call `find_tools` and then `request_access`; a tool you are given
+appears on your next model call, with no restart. Giving access needs no
+credential step. The broker posts with the person's own X sign-in first, then
+the team's X account linked to the `cli:x` tool. Each person signs in with
+their own X account by running `/link cli:x` themselves, which opens the
+broker's X sign-in page; only a team administrator or owner links the team's
+account (`/link cli:x team`), which is used for people who have not signed in.
+People never link a personal X account. X credentials never come from
+environment variables. Apart from the sign-in command, do not ask the user to
+type slash commands. If the catalog lacks `cli:x`, report the runtime version
+gap; do not invent a registration request.
 
 For a setup-and-post goal, publish a complete `submit_access_workflow` plan before
-requesting the first approval. Include account reuse/selection, the existing
-capability, any required restart, account verification, the exact post review,
-publication, and verification of its returned URL. Follow the visual workflow
-section of `runtime-operations-workflows`. Batch independent concrete requests
-with `request_access_workflow_approvals`; keep dependent or later-produced
-content reviews on that same page. Do not recreate completed setup or ask the
-user to drive internal permission commands.
+asking for anything. Include the X account (the person's own sign-in, or an
+`account` step for the team's account link), account verification (`tool_access` `cli:x` at `read`), the exact post review and
+publication (`cli:x` at `write`), and a check of its returned URL. Follow the workflow section of `runtime-operations-workflows`. Ask
+for independent staged changes together with `request_access_workflow_approvals`,
+then apply each approved one with `apply_change`; keep dependent or
+later-produced content on that same page. Do not recreate completed setup or ask
+the user to type commands that give access.
 
 1. Identify the intended X account and the exact post content from the task.
    Publish only within the user's requested scope.
-2. Check the existing credential catalog and broker authentication before asking
-   for new credentials. Call `secure_cli` with provider `xurl`, action
-   `auth.status`, and `params={"credential_binding_id":"<returned binding ID>"}`
-   after the reviewed attachment is active. The broker resolves the user-selected
-   account; do not guess its catalog key. For a direct catalog workflow, supply
-   the actual selected `credential_key` instead. Template names are not account
-   identifiers. Verify the returned username matches the intended account.
-3. If credentials are missing, render the `xurl_oauth2` credential template using
-   `credential_catalog.template.render_request`, then send the structured
-   `secure_credential_collection_request` through the gateway. Direct the user
-   to the secure form. Never request OAuth values, read token files, run
-   `xurl token`, or import tokens through chat or an agent shell.
-4. Publish with the exact broker envelope:
+2. Check broker authentication before asking for new credentials. Once you
+   hold `cli:x` at `read`, call `secure_cli` with provider `xurl`, action
+   `auth.status`, and `params={}`. Do not pass `credential_key` or any other
+   account selector; the broker refuses them and picks the account itself
+   (the person's sign-in, else the team's link).
+   Verify the returned username matches the intended account.
+3. If the broker reports `x_account_missing`, the person has not signed in to
+   X and the team has no linked X account. Ask the person to sign in with
+   `/link cli:x`, then check `auth.status` again. Only when the team's shared
+   X account is intended does TeamLead request a team account link for `cli:x`
+   (`owner: "team"`, administrators only; a specialist escalates to TeamLead).
+   If the team has no stored X credential yet, TeamLead first renders the
+   `xurl_oauth2` credential template using
+   `credential_catalog.template.render_request`, sends the structured
+   `secure_credential_collection_request` through the gateway, and links the
+   stored credential afterwards. Never request a personal account link for
+   `cli:x`. Never request OAuth values, read token files, run `xurl token`, or
+   import tokens through chat or an agent shell.
+4. Publish with this exact broker request:
 
    ```json
-   {"provider":"xurl","action":"post.create","params":{"credential_binding_id":"<returned binding ID>","text":"The approved post text."},"reason":"Publish the requested update to the selected X account."}
+   {"provider":"xurl","action":"post.create","params":{"text":"The approved post text."},"reason":"Publish the requested update to the linked X account."}
    ```
 
 5. Report the returned post URL and ID as completion evidence. A draft or a
@@ -53,29 +65,36 @@ When a broker result has `failure_stage=credential_resolution`, read its
 `error_code`, `required_field`, `action_owner`, and `next_action`. If
 `provider_operation_attempted=false`, explain that the tool operation was not
 attempted; do not claim the external service rejected authentication. A missing
-field means the selected credential is incompatible (X needs secret
-`oauth_json`; Hugging Face needs secret `api_token`). Ask the owner to select or
-create the matching credential through the secure workflow. Source configuration,
-read failures, or empty values go to TeamLead for diagnosis and operator help
-when needed. Correct only issues within existing authority; these diagnostics
-grant no permission. Preserve completed setup, never guess credential keys or
-repeat consent/attachment/restart indiscriminately, and do not retry the unchanged
-request when `retry_safe=false`. Never request or transmit secrets through chat.
+field means the linked credential is incompatible (X needs secret
+`oauth_json`; Hugging Face needs secret `api_token`). Ask TeamLead to have the
+owner store a matching credential through the secure form and link it to the
+tool. Source configuration, read failures, or empty values go to TeamLead for
+diagnosis and operator help when needed. Correct only issues within existing
+authority; these diagnostics grant no permission. Preserve completed setup,
+never guess credential keys or repeat account links, access requests, or restart
+indiscriminately, and do not retry the unchanged request when
+`retry_safe=false`. Never request or transmit secrets through chat.
 
 On `outcome_unknown`, reconcile the account's posts before another publish.
 Do not automatically retry; a timeout can follow a successful remote post.
 On `account_busy`, wait until the current account operation completes before
-checking status again. On auth failure, repair the selected broker credential.
-On a permission denial, follow the trusted access-request receipt workflow.
+checking status again. On auth failure, the account in use needs repair: a
+person renews their own sign-in with `/link cli:x`, and a team administrator
+repairs the team's account by storing it again through the secure form under
+the same key. When the
+call is refused (`access_denied`), call `request_access` with the `tool_id`,
+`operation`, and `level` it names and a plain reason; retry only when the
+result says `granted`.
 
-On `credential_binding_credential_mismatch`, check the supplied selector against
-the existing approved binding; do not recreate consent just because a guessed
-key failed. Use the exact binding ID after attachment. Provisioning status lists
-the initial definition separately from later configured attachments, and neither
-alone proves activation in the running worker.
+If `auth.status` returns a different username than intended, the wrong account
+is in use. The person signs in again with `/link cli:x` using the intended
+account, or, when the team's account is intended and wrong, TeamLead requests a
+new team account link for `cli:x`, which replaces the old one. Do not guess
+another credential.
 
 Keep credentials in Sealbox or the configured broker store. The broker hydrates
-xurl in a private temporary home, persists refreshed OAuth state, and removes
+xurl in a private temporary home, saves refreshed OAuth state (a person's
+sign-in under that person, the team's account under the team), and removes
 temporary material after use. Installing this skill does not grant posting rights.
 Use the broker for authenticated work even though `xurl` is on PATH.
 
@@ -84,8 +103,9 @@ setup details. Media posts, replies, threads, and deletion have no broker action
 in this version; do not substitute an arbitrary credentialed shell command.
 
 For a complete communications workflow, include research, draft preparation,
-account reuse/selection, attachment, publication review and result verification
-in one access plan. TeamLead's routine delegation recommendation excludes
-brokered X operations and publishing. Existing routine research authority may be
-reused; account binding or attachment never approves a future post. Do not
-regenerate completed setup solely because publication needs a later review.
+the X account step, publication review and result verification in one
+access plan. Leave X posting access for a person to decide; TeamLead does not
+hand it on to workers as routine access. Research access the worker already
+holds may be reused; neither a sign-in nor an account link approves a future
+post. Do not regenerate completed setup solely because publication needs a
+later review.

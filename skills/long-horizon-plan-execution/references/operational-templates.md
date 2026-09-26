@@ -27,7 +27,7 @@ them as typed runtime models when available.
 - Accepted success criteria, evaluators, and required evidence:
 - Provisional criteria, proxy limitations, and discovery / review points:
 - Failure, rollback, partial-delivery, and stop conditions:
-- Authority envelope and risk tolerance:
+- Limits of authority and risk tolerance:
 - Budget, deadline, and reporting cadence:
 - Applicable domains:
 - Governing procedures and versions:

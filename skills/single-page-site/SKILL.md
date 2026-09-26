@@ -56,14 +56,16 @@ model-authored HTML/CSS/JavaScript.
    For a short, already-focused conversation, keep the current thread by leaving the current `conversation_id` and `session_key` in the site spec. For a long or mixed conversation, first call `create_focused_conversation` with the relevant source turn indexes and a concise summary, then set the returned `conversation_id` in the site spec while preserving the current `session_key`. This gives the website chat a fresh focused thread without rewriting the original conversation.
 
 6. Publish the site.
-   Call `publish_single_page_site(site_spec_json, site_slug, site_kind)` with a JSON object, not prose. Include the current channel `thread_id` when available; otherwise include `conversation_id`. Use the selected typed kind rather than encoding the kind only in prose. The tool returns `site_url`, `site_id`, `site_kind`, and artifact paths.
+   Call `publish_single_page_site(site_spec_json, site_slug, site_kind)` with a JSON object, not prose. Include the current channel `thread_id` when available; otherwise include `conversation_id`. Use the selected typed kind rather than encoding the kind only in prose. The tool returns `site_url`, `site_id`, `site_kind`, and the page's path.
+   The page is written into `sites/<site_id>/` of the person's folder (`agents/sites/` for work for no person). Do not edit that file to change the page: the host serves it only while it matches what the tool published, so an edited page stops being served. Publish again with `update_site_id` instead; only pages made for the same person can be updated.
 
 7. Reply with the exact URL and important limits.
    Return the exact `site_url`; do not invent or shorten it. Call out unresolved
    assumptions or safety constraints. Mention browser-local state only when the
-   page includes checklists, counters, or progress controls. Explain that the
-   embedded chat can continue the same conversation when the website host and
-   gateway are running.
+   page includes checklists, counters, or progress controls. Explain that
+   anyone with the link can open the page, and that its embedded chat continues
+   the same conversation only for the person it was made for, signed in to
+   Web Chat in that browser, while the website host and gateway are running.
 
 ## Optional UI Elements
 

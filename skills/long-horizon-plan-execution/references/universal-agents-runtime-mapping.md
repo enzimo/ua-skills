@@ -34,17 +34,20 @@ A successful `TaskStatus` refresh confirms liveness, not progress or approval.
 The runtime spaces status probes using the last successful probe; do not create
 replacement tasks just because a worker is waiting. A missing reply is a
 transport or responsiveness observation, not evidence that the task completed.
-For credential binding, emit the exact prepared consent request once. The
-runtime routes it to the configured gateway even when a worker requested the
-setup; the target agent type identifies who will use the binding. Wait for its
-typed broker result instead of treating tool approval as completed credential
-selection or creating another binding plan while consent is pending.
+For a missing account, TeamLead emits one `secure_account_link_request`. The
+runtime routes it to the configured gateway even when a worker needed the
+account. Wait for its typed broker result (`account_link_created`,
+`account_link_declined`, or `account_link_unavailable`) instead of treating
+tool approval as a linked account or requesting another link while one is
+pending. GitHub, Google and X use the person's own sign-in instead, which only
+the person starts with `/link <tool id>`; ask them to run it and never request
+a personal account link for those tools.
 
-A published access workflow belongs to its source Task. Staging its requests or
-closing the local execution plan does not finish that workflow. Follow
-`runtime-operations-workflows`, keep review steps waiting, and inspect every
-saved review outcome when the same task resumes. Approval permits only the exact
-reviewed change; it does not prove execution. Complete steps after verifying
+A published access workflow belongs to its source Task and is a view over its
+access requests. Staging its changes or closing the local execution plan does
+not finish that workflow. Follow `runtime-operations-workflows`, and read every
+request's current status with `get_access_workflow` when the same task resumes.
+Approval permits only the exact change; it does not prove execution. Complete steps after verifying
 their results, or record a concrete failure and recovery action. If an older
 source task has already ended, inspect its workflow from the follow-up task and,
 when the user requests continuation, plan only the remaining work. Keep completed
@@ -52,12 +55,12 @@ results and check uncertain external effects before another attempt.
 
 Use the `review_url` returned by workflow submission or inspection for live
 progress links. Never use a skill documentation address as the workflow link.
-Keep independent administration reviews in the original task's batch and check
-all outcomes before reporting. Distinguish an escalated check from an actual
-Inbox review: `action_required_request_ids` or `human_review_submitted=false`
-requires the lead to prepare a review, not to wait for the user. Use the exact
-`delegation_checks` failure to distinguish the lead's own missing tool access
-from inadequate worker delegation boundaries. Respect existing rejections.
+Ask for independent staged changes together with
+`request_access_workflow_approvals` (one pause for all of them), then apply each
+approved change with `apply_change`, and check every outcome before reporting.
+When the lead itself lacks a tool a worker needs, it calls `request_access` first
+and then hands the access on with `give_access`. Never ask again for anything a
+person denied: the denial closes its workflow step.
 
 ## Use Hierarchical Objective Plans and the Work Ledger
 
@@ -123,7 +126,7 @@ Promote long evidence work with `create_research_run`. Objective-linked
 research must use a Research work item that has passed Objective admission;
 never supply only an Objective id. Copy only the bounded
 question, current Objective/Plan slice, accepted evidence and procedures,
-budgets, capability-manifest digest, and stop conditions into the immutable
+budgets, and stop conditions into the immutable
 ResearchRun context. The isolated worker gets a fresh Strands instance and no
 origin conversation or shared-memory channel. It returns a structured terminal
 capsule to TeamArchitect first. TeamArchitect validates provenance and fences,
@@ -133,16 +136,16 @@ Tasks, execution-control work, managed services, schedules, and durable waits
 may coexist in the ledger; their placement and authority boundaries remain
 distinct.
 
-Choose a useful initial `capability_ids_json` subset when creating the run. The
-runtime binds trusted registry descriptor digests and exact tool names into the
-immutable context and revalidates them before each attempt. If the worker emits
-`needs_capability`, treat it as a checkpointed wait: inspect the exact support
-request, add only a requested capability already trusted and delegable by
-TeamArchitect, and resume as a new manifest revision and fenced attempt. An
-Objective-linked capability wait releases its local slot and must reacquire it
-before resume. New MCP, credential, attachment, protected-operation, or other
-authority stays on its existing reviewed path; a worker request never grants
-it.
+The run's worker starts with its role's standard tools, and its tool list
+follows the access it holds for the person the Objective works for. Give it
+the tools the question needs with `give_access` when you may hand them on. If
+the worker asks with `request_access`, treat the wait as a checkpoint: the
+task pauses until the access is handed down or a person decides, and a grant
+is usable on the worker's next step without a restart. An Objective-linked
+wait releases its local slot and must reacquire it before resuming. New web
+API tools, data folders, account links and MCP servers stay on their reviewed
+paths (`propose_access_change`, MCP installation); a worker request never
+grants them.
 
 Worker terminal results enter the Objective integration queue. TeamArchitect
 reviews the result and current Plan revision before integration, replanning,
@@ -158,7 +161,7 @@ periodic occurrence in a new work item. Artifact inspection is limited to the
 active Task or ResearchRun directory; carry accepted evidence through the
 context manifest instead of reading another run's raw filesystem paths.
 
-Capability resume preserves the previous terminal capsule as a disk-backed
+Resuming after an access wait preserves the previous terminal capsule as a disk-backed
 continuation reference. Review and reuse its partial findings without treating
 them as verified merely because they survived a restart. Exhausted attempts
 and queued cancellation produce coordinator observations for TeamArchitect
@@ -264,7 +267,7 @@ For an accepted Objective policy, `tool_calls` is the authoritative total for
 that work session; the ordinary `agent.max_tool_calls_per_task` limit does not
 silently shrink it. `checkpoint_reserve_tool_calls` is only retry headroom for
 the checkpoint-only `record_objective_work_checkpoint` pass. It does not add
-material-work tool capacity, and the built-in operator envelope allows at most
+material-work tool capacity, and the built-in operator limit allows at most
 five reserved attempts.
 
 Explain the material-work allowance after reserves. When a run reaches a
@@ -305,8 +308,8 @@ impersonate the browser user or an operator to apply one.
 Use `export_objective_work_profile_yaml` to render a deterministic schema-v2
 policy layer for an agreed configured, installed, or Objective-scoped profile.
 Rendering is read-only. Saving requires explicit user confirmation and writes
-only under `objective_execution_profiles/`; it does not activate the layer.
-Tell the operator to append its workspace-relative path after the base layer in
+only under `control/objective_execution_profiles/`; it does not activate the layer.
+Tell the operator to append its path relative to `control/` after the base layer in
 `workspace.objective_execution_paths` and restart the manager. Later layers
 replace same-named profiles and may adjust strict policy sections. Missing
 files are warned and skipped; malformed files stop startup. Never edit the main
@@ -336,8 +339,9 @@ checkpoint. Keep unfinished work in the durable Objective and Plan for the next
 session; do not keep the current Task waiting for a future timer tick. Report a
 blocked session honestly without claiming that its remaining subgoals succeeded.
 Use a fresh interactive conversation for a repair that requires human input when
-the background Task has no external reply route. Verify the actual human
-interaction record before telling the owner to approve something in Inbox.
+the background Task has no external reply route. Before telling the owner to
+approve something in the Inbox, check that a real access request or staged
+change is waiting there.
 
 If session completion reports a policy, schedule or owner verification failure,
 inspect the saved work policy, its linked schedule and the saved checkpoint.
@@ -397,51 +401,40 @@ shared persisted state as an inter-agent communication channel.
 ## Preserve Authorization
 
 Treat conversational confirmation as agreement rather than authenticated
-authority. Let Cedar-compatible decisions and mandatory local guards control
-protected actions. Keep attachment, invocation, schedule, settings,
+authority. Let the access service's decisions and mandatory local guards
+control protected actions. Keep access, invocation, schedule, settings,
 credentials, provisioning, and skill lifecycle authorities distinct.
 
-Request the exact missing authority only after the protected boundary exposes
-it. Resume from the structured authenticated decision without expanding its
-scope.
+Ask for access with `request_access` only after a call is refused with
+`access_denied`, using the `tool_id`, `operation`, and `level` it names. Resume
+from the returned decision without widening it.
 
-A delegated worker's framework-tool interruption first reaches its parent.
-TeamArchitect may approve an exact one-use grant or permanent worker-type policy
-only within its active delegation envelope and own authority. Otherwise the
-original request reaches human review and resumes the original worker. Keep the
-parent waiting for its child result and record the permission dependency; do not
-copy the worker's receipt or restart the task as a new assignment.
+When a worker asks with `request_access`, the runtime hands the access down at
+once if TeamArchitect holds it and may hand it on without asking. Otherwise the
+worker's task waits for a person in the Inbox and resumes with the decision.
+Keep the parent waiting for its child result and record the access dependency;
+do not restart the task as a new assignment.
 
 An agent may recur in the task hierarchy: TeamArchitect can delegate a job whose
-specialist asks TeamArchitect for a protected setup step. Keep that lineage intact;
-the request returns through distinct parent tasks to human review. TeamArchitect
-cannot approve its own request. A missing requester route is a task failure,
-not an authorization decision. Inspect the saved task and pending review before
-retrying; do not recreate the permission request or copy an approval receipt to
-another task merely because delivery failed.
+specialist needs a protected setup step from TeamArchitect. Keep that lineage
+intact. TeamArchitect never approves access requests itself; a request its access
+does not cover goes to a person in the Inbox. A missing requester route is a task
+failure, not an access decision. Inspect the saved task before retrying; do not
+ask for the same access again or copy a decision to another task merely because
+delivery failed.
 
-For a trusted operator-class denial, `request_access` may route an exact
-profile-eligible TeamArchitect action to the durable **Settings → Inbox**.
-This is a wait for an authenticated team administrator, not a role assignment
-or conversational approval. Administrator elevation is limited to the exact
-agent, team, acting user, task, action, resource, capability, target-profile
-digest, expiry, and remaining uses. It cannot become persistent or delegate.
-After receiving the denial and before calling `request_access`, write a
-provisional Objective checkpoint because the call may suspend the source task
-immediately. Include the receipt, exact target and observed state, dependent
-work, resume condition, and a fresh resource version or digest while checkpoint
-reserve remains; observe the target first if the denial does not contain that
-fresh state. Keep the source task non-terminal. Rely on the gateway to present
-an administrator queue only when the trusted interrupt confirms eligibility.
-A deterministic-review result has no user prompt and must not be polled or
-retried. If `request_access` re-enters after the request became terminal, it
-recovers the persisted structured result without opening another approval; use
-it only when its exact authority remains active. Resume the same task only from
-the structured decision. Re-observe the exact resource identity, state, and digest
-before retry because they may have changed during the wait, verify the resulting
-state after the operation, and record only the lease consumption, remaining-use,
-expiry, or revocation state exposed by a trusted runtime or administrator view
-when the path closes. After denial or timeout, continue only with independent
+After an `access_denied` result and before calling `request_access`, write a
+provisional Objective checkpoint, because the call may pause the source task at
+once. Include the refused `tool_id`, operation, and level, the exact target and
+observed state, dependent work, the resume condition, and a fresh resource
+version or digest while checkpoint reserve remains; observe the target first if
+you lack fresh state. Keep the source task non-terminal. Do not poll or retry
+while waiting. A resumed call returns the saved decision without asking again.
+Retry only when the result says `granted`. Re-observe the exact resource
+identity, state, and digest first, because they may have changed during the
+wait, and verify the resulting state after the operation. When the path closes,
+record the access's level and lifetime from `list_my_access`. After a denial,
+or a withdrawal because the task ended first, continue only with independent
 work that neither performs nor approximates the denied effect.
 
 ## Respect Current Limits
@@ -466,13 +459,17 @@ For an ordinary user-owned scheduled root task, select the named worker type and
 configure its automatic worker policy with `configure_scheduled_worker`. Use
 `create_scheduled_job` with `target_agent_type`, `worker_policy_json`, and
 `requirements_json` when creating the job. Keep known-blocked jobs as inactive
-drafts. Declare exact trusted capability IDs and operations; mark branch-dependent
-needs conditional and leave `runtime_discovery` enabled for open-ended work.
+drafts. Declare each requirement as a tool catalog id and one of its operations
+(`find_tools` lists them); mark branch-dependent needs conditional and leave
+`runtime_discovery` enabled for open-ended work.
 
 Use `prepare_scheduled_job_access` to check requirements and
-`authorize_scheduled_job_access(schedule_id, expected_revision)` to let TeamLead
-establish exact schedule-specific invocation access within its own authority and
-the operator delegation envelope. Recheck readiness before activating the draft.
+`authorize_scheduled_job_access(schedule_id, expected_revision)` to give the
+worker type what TeamLead may hand on; the rest is listed for a person to give.
+`prepare_scheduled_job_access` reports under `missing_access` the tools the worker
+type or the schedule's owner does not hold yet. Recheck readiness before
+activating the draft. Changes to schedules the runtime manages return
+`approval_required` and are applied with `apply_change` after a person approves.
 Use the returned policy revision for edits. Convert exact agent-ID targets only
 with explicit `convert_exact_target=true`; let live claims finish under their
 prior revision. Keep protected Objective and infrastructure schedules on their
@@ -485,25 +482,28 @@ and a terminal task result. A worker may retire between runs; retain the schedul
 policy so the controller can cover the next occurrence. Do not publish a second
 copy of a scheduled payload to NATS.
 
-When execution discovers missing permission, use a trusted denial receipt with
-`request_access`. For exact framework operations, use
-`request_framework_tool_access` when the permission must be checked explicitly.
-Let TeamLead review the scheduled root request. Use `schedule` duration for
-recurring approval; a broad agent-type grant is not a substitute. For missing
-attachments or credentials, use `manager_escalation` with the schedule and trusted
-capability ID. Wait through the existing task workflow and verify the actual
-operation after repair. Never treat a review message as authority.
+When a scheduled run is refused with `access_denied`, the worker calls
+`request_access` with the `tool_id`, `operation`, and `level` it names. If
+TeamLead may hand the access on, it arrives at once; otherwise the run waits for
+a person in the Inbox. Ask with the default `lifetime="until_revoked"` for access
+every run needs; `task` or `one_time` access ends with the run. For a tool the
+catalog lacks or missing credentials, use `manager_escalation` with the schedule
+and the tool ID. Wait through the existing task workflow and verify the actual
+operation after repair. Never treat a review message as access.
 
 Change shared rules through `agent.schedule_workers.defaults.<rule>` for the
 team or `agent.schedule_worker_rules.<rule>` with agent-type scope. As TeamLead,
 use `inspect_scheduled_worker` to check custom specialist eligibility, including
 on unbound drafts. Check `eligibility.allowed_by_default_policy` before changing
-eligibility: the runtime records current specialist definitions once per team and
-permits their local startup by default. Preserve existing disables and operator
-denies. For a new or changed definition that lacks permission, add the registered
-type through the bounded `agent.schedule_workers.eligible_agent_types` setting,
-preserving existing entries, then prepare access and configure the policy. Keep
-startup permission separate from tool access.
+eligibility: specialist types shipped with Universal Agents have local startup
+permission by default. Preserve existing disables and operator denies. For a
+team-written type that lacks permission, add the registered type through the
+bounded `agent.schedule_workers.eligible_agent_types` setting, preserving existing
+entries, then prepare access and configure the policy. Keep startup permission
+separate from tool access. When a team-written definition changes, the schedule
+pauses with `agent_definition_changed_review_required`; show the owner
+`definition.changes` from the inspection and re-save with `suggested_refresh` after
+the owner agrees. Code releases never pause a schedule.
 
 Check `worker_configuration_supported` before changing a timer. Run new and
 upgraded system memory-review timers through the local scheduler with MemReviewAgent;
@@ -513,11 +513,12 @@ procedure instead of creating a replacement timer. Preserve queued review jobs;
 they alone do not block the upgrade. Use the preview's exact IDs to resolve claimed
 jobs, including expired claims with uncertain outcomes, and saved unfinished worker
 tasks. Require stopped team runtimes and completed old NATS deliveries before apply.
-Do not delete records or mark reviews complete to clear an upgrade check. Preserve
-system-schedule edit permissions and verify actual review jobs and results.
-Treat `no_matching_delegation_envelope` as missing coverage for the request,
-not proof that all boundaries are absent. Read saved administration outcomes;
-reuse pending reviews and respect rejected requests. Read the scheduled-worker repair
+Do not delete records or mark reviews complete to clear an upgrade check. Keep
+system-schedule edits on their staged approval path and verify actual review
+jobs and results.
+Check `list_my_access`, then hand on
+missing access with `give_access` or ask for it with `request_access`; respect
+denied requests. Read the scheduled-worker repair
 reference in `runtime-operations-workflows` for tuning and completion checks.
 Keep explicit operator denies, the kill switch, quotas, leases and timing
 ceilings outside these edits.
@@ -535,38 +536,24 @@ Treat a control timeout as an unconfirmed outcome. Refresh Tasks or run `/stop`
 before retrying removal; do not infer disconnection or repeat a purge automatically.
 
 For a task queue safety notice, inspect the named task's recorded dependency.
-The runtime removes invalid queue entries while preserving tasks and permissions,
+The runtime removes invalid queue entries while preserving tasks and pending access requests,
 and pauses a final review that has no recorded reason to wait. Resolve genuine
 dependencies through their normal workflows. Do not resend the original request,
 duplicate a scheduled occurrence, or delete database rows to bypass the wait.
 
 
-### Compare delegation boundaries and correct review steps
+### Correct review steps
 
-Call `inspect_delegation_boundaries` before choosing among current delegation rules.
-Compare worker types, exact resource attributes, actions, scopes and grant limits.
-Explain meaningful differences and recommend the smallest relevant change; do not
-ask the user to select unexplained IDs. Direct administrators to Settings →
-Permissions → Administration → Active delegation boundaries. Treat applicability
-as selection information, then verify actual operation coverage separately.
-
-Use `permission.delegation_envelope.activate` for a delegation review step. Correct
-mistaken expected actions with `revise_access_workflow_step` before linking reviews,
-while retaining the source workflow and completed work. If a submitted review
-returns `workflow_linked=false`, retain its Inbox URL, correct the step and resubmit
-the same idempotency key to link the existing request. Never equate a linking error
-with failure to save the request. For an already-ended source task, follow the
-existing remaining-work recovery procedure rather than impersonating that task.
+Each workflow step names the kinds of change (`change_kinds`) and the tools with a
+level (`tool_access`) it needs; requests made while it runs are shown on it. Correct
+a step that names the wrong kind or tool with `revise_access_workflow_step` before
+any request is linked to it, keeping the workflow and finished work. A request no
+running step expects is still decided in the Inbox and listed as not on a step. For
+an already-ended source task, follow the remaining-work recovery procedure rather
+than impersonating that task.
 
 Link the tool-returned workflow `review_url`. Never infer a published documentation
 URL from a runtime skill name; use only pages confirmed by a documentation listing.
-
-When a persistent-permission review closes with
-`persistent_policy_already_active`, the runtime found matching existing access.
-Do not ask the user to approve or reject that duplicate again. Read the persisted
-result and continue only when its current `authority_granted` check succeeds.
-The resolution did not create new access or extend expiry. A terminal review
-alone does not prove that the protected operation can now run.
 
 Recurring timer runs may share conversation history without being follow-up
 requests. A successful no-change check may complete quietly; explicit follow-ups
@@ -577,13 +564,10 @@ Built-in procedural guidance is served at
 website base URL. A saved workflow's progress uses its returned `/workflows/<id>`
 URL, never the documentation URL.
 
-Inbox and Permissions → Needs Approval list saved actionable reviews, not all
-historical permission requests. An empty Inbox is not evidence that every raw
-pending/escalated request has authority or needs another approval. Inspect the
-saved review and current access. Once owner review moves to administrator review,
-do not recreate the owner decision. Use the existing administrator review;
-respect closed outcomes. Internal scheduled/recovery permission reviews may have
-no gateway chat request and resume through their persisted task wake.
+The Inbox lists access requests waiting for a person and notices that need no
+decision. Do not ask again while a request waits; respect decided outcomes and
+check `list_my_access` for current access. Scheduled and recovery requests may
+have no chat conversation; they resume the waiting task when a person decides.
 
 
 For abandoned expired review claims, preview the offline upgrade with
@@ -591,10 +575,12 @@ For abandoned expired review claims, preview the offline upgrade with
 finishing old broker deliveries, and taking a full backup. The option preserves
 content and marks the records inactive with an unknown outcome; it does not replay
 or delete them. Keep live claims and saved unfinished or unsupported workers as
-blockers. Let InternalImprovementAgent inspect cleanup metadata, archive exact IDs,
-and request access with the trusted denial receipt when needed. Purge only archived
-content after retention. Preserve recurring memory schedules and check existing
-cleanup permission request IDs before asking again.
+blockers. Let InternalImprovementAgent inspect cleanup metadata and archive exact
+IDs in its maintenance runs; the cleanup tools are its fixed duties as a built-in
+system agent, and those runs work for no person. If a cleanup call is still
+refused (for example by an administrator's block), it reports the refusal to
+TeamArchitect rather than asking again. Purge only archived content after
+retention. Preserve recurring memory schedules.
 
 ### Inspect schedules and reviews without large inventories
 
@@ -607,7 +593,9 @@ cleanup permission request IDs before asking again.
 - Read supplied review IDs with `get_memory_review_job(review_job_id=...)`.
   Follow its `detail.next_offset` as `offset`, checking the same digest. Use
   `list_pending_memory_review_jobs` only for pending metadata for the current
-  team and worker type. Follow `next_offset`; never treat one page as all work.
+  team, worker type and person (review tools show only jobs made for the
+  person the task works for). Follow `next_offset`; never treat one page as
+  all work.
 - Restart pending-job pagination after job mutations. Do not create a Python
   environment or open raw database files to read ordinary inspection results.
   Treat reads as evidence only; preserve claim ownership and exact permission
@@ -619,7 +607,7 @@ Use `list_task_queue` for your active execution roots, queue positions, blockers
 and delegated children. Read task history before treating two roots as
 duplicates. Use `control_task_queue` to pause runnable queued work, stop a
 confirmed duplicate, or resume the retained task once its blockers are resolved.
-Resume does not approve permissions, answer pending questions, or override
+Resume does not decide access requests, answer pending questions, or override
 budget pauses. Report the blocker and exact task ID instead of creating another
-copy. Self-status, own tool-result inspection and current-task history notes do
-not require a separate approval under the default policy.
+copy. Self-status, own tool-result inspection and current-task history notes are
+standard access and need no grant.

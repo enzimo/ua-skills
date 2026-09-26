@@ -27,15 +27,15 @@ Below is a summary of the skills currently available in this repository:
 
 | Skill | Description |
 | :--- | :--- |
-| **`xurl`** | Publishes X text posts through the credential broker and checks the selected account. |
+| **`xurl`** | Publishes X text posts through the credential broker and checks the linked account. |
 | **`hf-cli`** | Searches Hugging Face models/datasets and performs bounded brokered file transfers. |
 | **`brave-search`** | Uses Brave Search API for independent-index web search, LLM grounding context, freshness filters, Goggles ranking, and provider comparison workflows. |
 | **`build-project-room`** | Prepares gated project rooms for high-stakes, multi-source knowledge work from messy or conflicting source material. |
 | **`bw`** | Uses Bitwarden through the `bw` CLI or brokered secure CLI actions for auth, credential search, metadata lookup, and secret use. |
-| **`crawl4ai`** | Coordinates MCP setup, stored-credential consent and Inbox review, then uses the available Crawl4AI tools for rendered retrieval, extraction, screenshots, PDFs, and crawl workflows. |
+| **`crawl4ai`** | Coordinates MCP setup, account links and Inbox review, then uses the available Crawl4AI tools for rendered retrieval, extraction, screenshots, PDFs, and crawl workflows. |
 | **`long-horizon-plan-execution`** | Guides self-sustaining teams through goal contracts, independent Objective/Plan/Task lifecycles, evolving completion criteria, actionable-frontier planning, level-specific progress definitions, supervised replanning, selective alternatives, negotiated work sessions, adaptive OODA execution, recovery, and evidence-based closure. |
 | **`gh`** | Uses GitHub from a terminal-only environment through `gh` or brokered secure CLI actions for repositories, issues, PRs, Actions, releases, search, and API calls. |
-| **`gog`** | Uses Google Workspace through `gog` or brokered secure CLI actions for Gmail, Calendar, Drive, Docs, Sheets, Contacts, Admin, and related Google workflows, including durable OAuth publishing guidance, the primary manual web flow, renamed-account recovery, the `secure_cli` provider/action/params envelope, decoded Gmail body, and attachment handling. |
+| **`gog`** | Uses Google Workspace through `gog` or brokered secure CLI actions for Gmail, Calendar, Drive, Docs, Sheets, Contacts, Admin, and related Google workflows, including durable OAuth publishing guidance, the primary manual web flow, renamed-account recovery, the `secure_cli` provider/action/params request format, decoded Gmail body, and attachment handling. |
 | **`markitdown`** | Handles URLs, HTML, JSON/XML, images, audio, archives, Outlook, YouTube, plugins, OCR-related workflows, and other conversion needs outside Universal Agents' bundled local AnyDoc format set. |
 | **`searxng-search`** | Searches the web through a privacy-respecting SearXNG metasearch instance for web, news, image, video, and specialized queries. |
 | **`single-page-site`** | Builds Universal Agents-styled single-page articles, comparisons, how-tos, and interactive apps with optional structured UI and follow-up chat. |
@@ -133,8 +133,12 @@ creating a duplicate.
 This repository is licensed under the MIT License. Copyright (c) 2026 Enzimo.
 
 Use the existing `builtin:x_posting` capability for reviewed specialist X access.
-Keep its credential binding and invocation consent separate; do not route missing
-X access through an unrelated delegation-envelope registration request.
+Keep its X account (the person's own sign-in with `/link cli:x`, else the
+team's account link), attachment, and access to `cli:x` separate; ask for
+missing X access with `request_access`. In every skill, people set up a tool's
+account with `/link <tool id>` (GitHub, Google and X sign-ins included);
+`/auth` keeps only status, the team's sign-in apps (`team_client`) and the
+password managers.
 
 Keep the long-horizon runtime mapping aligned with automatic scheduled workers,
 prospective tool readiness, and schedule-specific access approval. Preserve the
@@ -148,24 +152,24 @@ The mapping also checks saved approval outcomes before proposing repairs.
 It also keeps review batches on one task and distinguishes missing review items
 from decisions still awaiting the user.
 
-Keep delegation-boundary comparison and unfinished review-step correction aligned
-with the runtime mapping. Preserve saved Inbox reviews across workflow-link errors
+Keep the guidance on handing access to workers and correcting unfinished review
+steps aligned with the runtime mapping. Preserve saved Inbox reviews across workflow-link errors
 and use tool-returned workflow URLs instead of guessing runtime-skill docs pages.
 
-The runtime mapping covers duplicate permission reviews resolved from existing
-access. Continue from the verified current result without asking for another
-approval or treating the resolution as new access or an expiry extension.
+The runtime mapping covers access requests answered from access the agent
+already holds (`already_held`). Continue from the verified current result
+without asking again or treating it as new access or a longer expiry.
 
 Keep the runtime mapping aligned with quiet recurring checks that preserve
 conversation history, explicit follow-up response obligations, and the separate
 built-in guidance and saved-workflow progress URLs.
 
-Keep permission-review guidance aligned with the shared Inbox pending-review
-records. Raw historical requests must not reopen completed owner decisions.
+Keep access-request guidance aligned with the Inbox: a request waits there until
+a person decides, and a decided request is never asked again.
 
 The long-horizon runtime mapping also covers abandoned memory-review claims:
 explicit offline retirement, retained unknown outcomes, and InternalImprovementAgent
-cleanup with permission checks and retention.
+cleanup with access checks and retention.
 
 The long-horizon runtime mapping includes bounded schedule and memory-review
 inspection: use summaries for discovery and exact IDs for paged source details.
@@ -174,7 +178,8 @@ Task-backlog recovery uses owner-scoped Settings task controls. Queue purge keep
 current work; `/stop all` cancels it too. Both retain future schedules and history.
 After a control timeout, inspect current task state before retrying cancellation.
 Bounded Objective sessions close their Tasks after checkpointing; remaining plan
-work belongs to later sessions. A raw permission request does not prove Inbox delivery.
+work belongs to later sessions. Before telling the owner to approve something in
+the Inbox, confirm that a real access request or staged change is waiting there.
 
 For session-completion verification failures, inspect the saved policy and schedule
 link, preserve checkpoints, and explicitly resume a blocked Objective after repair.

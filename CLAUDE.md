@@ -2,12 +2,16 @@
 
 This file guides AI agents and developers working on the `ua-skills` repository.
 
-Keep Crawl4AI setup aligned with `activate_mcp_connection`: installation and
-discovery can require separate administrator Inbox decisions. Do not describe a
-raw pending permission request as an actionable Inbox item.
-For stored Crawl4AI tokens, use the existing MCP credential-binding consent flow
-before activation. Never treat an OpenShell lease as MCP authority or copy its
-token into configuration.
+Keep Crawl4AI setup aligned with the Universal Agents MCP model: an installed
+server is the tool `mcp:crawl4ai`, and agents see its tools while they hold
+access to it for the person they work for. A pending server is installed on
+one Inbox card (`propose_access_change` with `mcp_servers`, or
+`propose_mcp_connection` for a new one) or by an administrator in the MCP
+controls; full access to `mcp:crawl4ai` covers every Crawl4AI tool. A
+connection whose operator configuration declares credential slots uses the
+stored token linked to `mcp:crawl4ai` (the person's own link first, then the
+team's). Never treat an OpenShell lease as MCP authority or copy a token into
+configuration.
 
 ## Commands
 
@@ -32,7 +36,10 @@ token into configuration.
 The canonical list of available skills is maintained in `README.md` under "Available Skills". Update that table when adding, removing, or renaming skills under `skills/`.
 The catalog includes `user-onboarding-guide` for Universal Agents first-run opt-in capability tours.
 The catalog includes `single-page-site` for generated articles, comparisons,
-procedural how-tos, and browser-local interactive apps.
+procedural how-tos, and browser-local interactive apps. Keep it aligned with
+how Universal Agents serves pages: from `sites/` of the person's folder, only
+while they match what the tool published, with the page chat limited to the
+person the page was made for.
 The catalog includes `long-horizon-plan-execution` for self-sustaining execution,
 domain-procedure governance, independent Objective/Plan/Task lifecycles,
 evolving completion criteria, actionable-frontier planning, level-specific
@@ -47,8 +54,9 @@ Keep its runtime mapping aligned with Universal Agents Objective work sessions,
 including explicit acceptance, per-session activation, built-in and private
 profile selection, exact custom-profile proposal acceptance, safe-boundary
 yield, OODA checkpoint persistence, and closure of each session's Task without
-keeping it waiting for the next timer tick. Distinguish raw permission requests
-from human interaction records actually available in Inbox.
+keeping it waiting for the next timer tick. Before telling the owner to approve
+something in the Inbox, confirm that a real access request or staged change is
+waiting there.
 Keep completion-failure recovery explicit: preserve checkpoints, verify the saved
 Objective policy/schedule link and resume a blocked Objective after repair.
 Keep selective solution variation bounded and discretionary. Treat recorded
@@ -93,19 +101,23 @@ workflows; do not blur that converter boundary with a silent fallback.
     happen, why, and the next useful step. Keep attach, invoke, grant, lease,
     consumed, and revoke in technical details.
   - **Universal Agents Shell Handling:** For skills that run commands, instruct agents to load `shell-execution-workflows`. Keep commands non-interactive, do not manually prefix them with `rtk`, use `work_dir` and explicit timeouts, parallelize only independent commands, inspect separated output/error and termination metadata, and preserve broker ownership of credentialed CLIs and loopback services.
-- **Google Workspace Skill:** Keep `skills/gog/SKILL.md` aligned with installed `gog` command help, the broker's canonical auth methods, Google's External Testing 7-day refresh-token rule, and the `secure_cli` provider/action/params envelope, especially Gmail search/send params, `gog.exec` argv nesting, decoded-body behavior, and attachment-download behavior.
+- **Google Workspace Skill:** Keep `skills/gog/SKILL.md` aligned with installed `gog` command help, the broker's canonical auth methods, Google's External Testing 7-day refresh-token rule, and the `secure_cli` provider/action/params request format, especially Gmail search/send params, `gog.exec` argv nesting, decoded-body behavior, and attachment-download behavior.
   Preserve the account check when documenting renamed-account recovery; use
   Google's reported email only when it belongs to the user's intended account.
 
 The `xurl` and `hf-cli` skills pair with Universal Agents bundled templates.
-Keep their broker envelopes and versioned command references synchronized with
+Keep their broker request formats and versioned command references synchronized with
 `../universal-agents`, using `python -m scripts.sync_hub_cli_skills --check`
 from that checkout. Authenticated operations use the broker; do not instruct
 agents to copy Sealbox values into their own shell environments.
 
 Use the existing `builtin:x_posting` capability for reviewed specialist X access.
-Keep its credential binding and invocation consent separate; do not route missing
-X access through an unrelated delegation-envelope registration request.
+Keep its X account (the person's own sign-in with `/link cli:x`, else the
+team's account link), attachment, and access to `cli:x` separate; ask for
+missing X access with `request_access`. In every skill, people set up a tool's
+account with `/link <tool id>` (GitHub, Google and X sign-ins included);
+`/auth` keeps only status, the team's sign-in apps (`team_client`) and the
+password managers.
 
 Keep the long-horizon runtime mapping aligned with automatic scheduled workers,
 prospective tool readiness, and schedule-specific access approval. Preserve the
@@ -115,12 +127,13 @@ settings; retain operator control of explicit denies, the kill switch and limits
 Keep memory timers on the local MemReviewAgent scheduler and document the offline
 upgrade for old TeamArchitect timers. Preserve queued review records; distinguish
 them from claimed jobs, saved worker tasks, and pending NATS deliveries.
-Do not infer absent delegation boundaries from a request that failed to match.
+Check `list_my_access` before handing access on with `give_access` or asking
+for it with `request_access`.
 Keep review-batch continuation, actionable Inbox status and tool-returned workflow
 links synchronized with Universal Agents' runtime mapping.
 
-Keep delegation-boundary comparison and unfinished review-step correction aligned
-with the runtime mapping. Preserve saved Inbox reviews across workflow-link errors
+Keep the guidance on handing access to workers and correcting unfinished review
+steps aligned with the runtime mapping. Preserve saved Inbox reviews across workflow-link errors
 and use tool-returned workflow URLs instead of guessing runtime-skill docs pages.
 
 The runtime mapping covers duplicate permission reviews resolved from existing

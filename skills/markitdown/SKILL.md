@@ -22,7 +22,14 @@ Before running conversion commands through Universal Agents, load
 `shell-execution-workflows`. Pass the underlying command without an `rtk`
 prefix, set `work_dir` instead of relying on a persistent shell, and set an
 explicit timeout for large documents or `uvx` dependency startup. Inputs and
-outputs must stay inside the configured workspace. Inspect status, exit code,
+outputs must stay inside this task's folders (the person's folder and the
+shared `team/` and `agents/` folders) or a folder the agent was given, such as
+a registered data folder. The runtime sets `SKILLS_DIR` to the
+team skills folder, which commands can read but not write. `uvx` downloads
+MarkItDown on first use through the agent's internet access; if a person has
+blocked internet access, the download fails with a permission error: use an
+installed `markitdown` or tell the person, because a request cannot lift a
+block. Inspect status, exit code,
 separate output/error, termination reason, RTK mode, and warnings before
 diagnosing conversion failure.
 

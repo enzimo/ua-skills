@@ -1,48 +1,55 @@
 ---
 name: crawl4ai
-description: Use the attached Crawl4AI 0.9.2 MCP server for rendered retrieval, clean Markdown or HTML, screenshots, PDFs, structured extraction, configurable crawling, JavaScript execution, and Crawl4AI documentation queries. Use whenever a task needs browser-rendered page content, visual/document capture, or extraction from modern websites.
+description: Use the installed Crawl4AI 0.9.2 MCP server for rendered retrieval, clean Markdown or HTML, screenshots, PDFs, structured extraction, configurable crawling, JavaScript execution, and Crawl4AI documentation queries. Use whenever a task needs browser-rendered page content, visual/document capture, or extraction from modern websites.
 ---
 
 # Crawl4AI MCP
 
 Use the tools supplied by the named `crawl4ai` MCP server. Universal Agents
-prefixes every upstream tool with `crawl4ai_` so its origin remains explicit
-while the original upstream operation remains the exact Cedar authorization
-resource. The agent process receives a broker proxy and schemas, not the MCP
-endpoint credential.
+prefixes every upstream tool with `crawl4ai_` so its origin remains explicit.
+Access is checked against the catalog tool `mcp:crawl4ai` and the original
+upstream operation name, not the prefixed name. The agent process receives a
+broker proxy and schemas, not the MCP endpoint credential.
 
-Do not call the dormant project-native `crawl4ai(operation=...)` implementation.
-Do not use shell, curl, Python HTTP clients, or a loopback URL to bypass the MCP
-server. If the prefixed tools are absent, report that Crawl4AI MCP access is not
-installed, discovered, attached, available, or authorized for the current
-agent. Installation, initial discovery, and attachment to an agent type are
-separate authorities. Do not ask for a restart; approved, discovered, and
-attached MCP connections become available at a safe turn boundary.
+There is no project-native crawl tool; the one Crawl4AI tool outside MCP is
+`capture_web_screenshot` for exact-size viewport screenshots, which goes
+through the broker as the web API tool `http:crawl4ai`. Do not use shell,
+curl, Python HTTP clients, or a loopback URL to bypass the MCP server. The prefixed tools appear while the agent holds access to
+`mcp:crawl4ai` for the person it works for. If they are absent, check
+`list_mcp_connections` and `find_tools`, and report whether Crawl4AI is not
+installed, not authorized for this person's work, or not loading: their
+`load_status` says when the server is not answering (and when it is tried
+again, or that administrators were told) or why the broker refused. Do not ask
+for a restart; tools appear on the next step once installed and authorized.
 
-For the shipped connection with operator-configured authentication, inspect
-`list_mcp_connections` and call `activate_mcp_connection` once for the existing
-ID when the user requests setup. Let that tool coordinate separate installation,
-discovery, and attachment decisions. Installation and discovery use authenticated
-same-team administrator review in Settings > Inbox; approval resumes the same
-setup call. Do not submit activation receipts through another permission tool.
-If the tool reports that no Inbox approval was opened, state that the approval
-policy needs administrator attention. Do not equate a raw pending permission
-record with an actionable Inbox review.
+For the shipped connection, inspect
+`list_mcp_connections`. When the user requests setup and the connection is
+pending, TeamArchitect calls `propose_access_change` with
+`mcp_servers=[{"connection_id": ..., "record_digest": ...}]` from that listing
+and a short reason. An administrator installs it on one Inbox card that also
+lets TeamArchitect use all Crawl4AI tools and hand them on; the task waits,
+then the tools appear. An administrator may also approve it directly in the
+MCP controls. When it is installed but the tools are absent, call
+`request_access` with `tool_id="mcp:crawl4ai"` and `level="full"`; full access
+covers every Crawl4AI tool, so do not ask again for each one.
 
-If the existing connection needs authentication and the credential is already
-stored, have TeamArchitect load `secure-credential-workflows` and call
-`plan_credential_binding` with the existing capability id, the attached target
-agent type, `provider="mcp"`, `actions=["mcp.connect", "mcp.invoke"]`, and
-`mcp_authentication={"field_name": "api_token", "header_name": "Authorization",
-"scheme": "bearer"}`. Request credential-binding authorization when enabled,
-then prepare broker consent and wait for the authenticated user to select the
-stored credential. After the structured success result, activate the same
-connection to discover and attach tools. Do not copy the token, edit YAML, or
-create a duplicate connection. Do not treat an OpenShell lease as MCP consent.
-Treat `active` as installation state and `operator_configured` as the original
-configuration, not proof of successful authentication or a reason to refuse
-the stored-credential workflow. If the binding expires, is revoked or no longer
-matches the endpoint or credential revision, obtain fresh consent.
+The shipped connection declares a credential slot (`credential_injections`):
+the broker sends the Crawl4AI token as `Authorization: Bearer <token>` from the
+stored credential linked to its catalog tool, `mcp:crawl4ai`, using the
+person's own link first, then the team's. The token is never an environment
+variable (`CRAWL4AI_API_TOKEN` is refused at startup). When the broker reports
+`account_link_missing` for `mcp:crawl4ai`, tell the person that a team
+administrator links the team's token with `/link mcp:crawl4ai team` (and
+`/link http:crawl4ai team` for `capture_web_screenshot`), or have
+TeamArchitect load `secure-credential-workflows` and request an account link
+for `mcp:crawl4ai`. The person picks a stored token in the broker's form, or
+types a new one there to save and link it in one step. After
+`account_link_created`, retry; the tools load on the next step. Do not copy
+the token, edit YAML, or create a duplicate connection.
+Do not treat an OpenShell lease as MCP authority. Treat `active` as
+installation state and `operator_configured` as the original configuration,
+not proof of successful authentication. If the wrong account is linked, ask
+the person to link the right one; the new link replaces the old one.
 
 ## Available Tools
 
@@ -59,10 +66,10 @@ normally exposes:
 | `crawl4ai_crawl` | Crawl one or more URLs with the full MCP-exposed browser, crawler, extraction, hook, and streaming configuration |
 | `crawl4ai_ask` | Query Crawl4AI's indexed documentation and library context |
 
-The server may add tools over time, but newly discovered operations or schema
-changes remain quarantined until their exact catalog update is reviewed. Use an
-additional `crawl4ai_*` tool only when it is actually attached and its live
-schema and operator policy permit it.
+The server may add tools over time. A newly discovered or changed operation
+needs `full` access until an operator confirms its level. Use an additional
+`crawl4ai_*` tool only when it is actually attached and its live schema and
+operator policy permit it.
 
 ## Workflow
 
@@ -97,8 +104,8 @@ or unsupported browser initialization through unrelated fields.
 
 Treat `crawl4ai_execute_js` as high risk. Use it only when JavaScript is
 necessary for the requested page interaction and the server has enabled the
-operation. A denied call is an operator-policy boundary; do not bypass it
-through another tool or transport.
+operation. If the server refuses the operation, that is the operator's server
+policy; do not bypass it through another tool or transport.
 
 MCP bearer authentication is injected by the runtime. Never ask the user for
 the Crawl4AI service token and never place it in tool input. Forward website
@@ -115,8 +122,11 @@ provides a supported field or declarative hook for them.
   the authorized administrator to **Settings > Inbox** and let approval resume
   setup. If review is unavailable, report the tool's reason and next step. Do
   not restart merely to refresh approved tools.
-- Authentication failure with a stored token: use the approved binding flow
-  above before asking for another credential or operator configuration changes.
+- `account_link_missing` or an authentication failure on a connection with
+  credential slots: follow the account link steps above before asking for
+  another credential or operator configuration changes. On a connection with
+  operator-configured authentication, ask an administrator to check the
+  server's token configuration.
 - Other authentication or connection failure: report that the named Crawl4AI MCP
   server could not complete the requested action, state the reported reason,
   and suggest retrying or asking an administrator to check the server. Preserve
@@ -125,6 +135,11 @@ provides a supported field or declarative hook for them.
   before the next invocation, but it does not replay the failed request. Retry
   read-only retrieval or capture once. Do not retry JavaScript or another
   potentially mutating action unless the user confirms replay is safe.
+- `access_denied` for `mcp:crawl4ai`: call `request_access` with the
+  `tool_id` and `level` it names (normally `full` for the whole server) and a
+  plain reason. Retry only
+  when the result says `granted`; after a denial, do not retry or use another
+  tool to get around it.
 - Rejected configuration: remove or correct the rejected field according to
   the live schema or consult `crawl4ai_ask`.
 - JavaScript or hook denial: respect the server policy and use a lower-risk

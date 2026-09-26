@@ -86,11 +86,33 @@ broker executes `argv` directly, not through a shell, injects `--no-input`, and
 adds `--json` by default unless `argv` includes `--plain` or `json=false`.
 
 `gog.exec` is policy-checked. It rejects shell strings, argv that include the
-`gog` executable, `auth` and `config` command paths, credential/token/keyring
-flags, service-account and impersonation flags, verbose output, and `--`
-argument separators. Do not try to use it for token export/import, OAuth client
-credentials, keyring setup, or config mutation; those belong only in `/auth`
-flows or broker-only operator setup.
+`gog` executable, `auth`, `config`, `login`, `mcp`, `backup` and `update`
+command paths, local server and hook commands (`drive changes poll/serve`,
+`docs comments poll`), whole-folder commands (`drive sync`, `appscript pull`;
+read script files with `appscript content`), credential/token/keyring flags,
+`--home`, `--access-token`, `--quota-project`, service-account and
+impersonation flags, verbose output, and `--` argument separators. The broker
+also runs read-level commands with `--readonly`, so a command that would
+change data fails with `request blocked by --readonly`; that means the command
+needs write access, not that it should be retried differently. Do not try to use it for token export/import, OAuth client
+credentials, keyring setup, or config mutation; those belong only in the
+broker's Google sign-in (`/link cli:google`), the team's sign-in app
+(`/auth google team_client`), or broker-only operator setup.
+
+Write unambiguous argv: only `--account` and output-format flags (`--json`,
+`--plain`, `--results-only`, `--select`, `--wrap-untrusted`, `--gmail-no-send`,
+`--dry-run`, `--force`) may come before the command; put every other option
+after the full command, and pass each short flag and its value as separate
+arguments (`"-a", "me@example.com"`, not `"-ame@example.com"`).
+
+Local files are limited to the task's folders: the person's own folder (where
+relative paths start) and the shared `team/` and `agents/` folders. This covers
+`drive upload <file>`, `gmail import <file>`, `--attach`, `--body-file`,
+`--content-file`, `--raw-file`, `--file`, `--out`, `--out-dir`, and `@file`
+JSON values. The broker copies
+input files through a private folder and copies outputs back to the path you
+gave (listed in `local_files_written`), so links to other places are refused.
+An output folder must already exist.
 
 For `gog.exec`, construct params exactly as
 `{"argv": ["gmail", "messages", "search", "in:inbox newer_than:1d", "--max",
@@ -132,15 +154,20 @@ direct shell access is allowed.
 
 Do not ask the user to paste Google refresh tokens, OAuth client JSON,
 service-account keys, passwords, or exported token files into chat. If new or
-refreshed credentials are needed, direct the user to the credential collection
-form for the matching `/auth google ...` flow.
+refreshed credentials are needed, ask the user to sign in with
+`/link cli:google` (or `/link cli:google json_token`).
+
+The broker uses only the requesting person's own Google sign-in, in a private
+gog home created for each command and deleted afterwards. An agent working for
+one person can never use another person's Google account, and a request for a
+person who has not signed in is refused with `auth_required` before gog runs.
+Google tokens never come from environment variables.
 
 Only when the broker returns `auth_required` should you ask the user to run one
 of:
 
-- `/auth google` for the primary broker-assisted browser flow. `/auth google
-  web` is the explicit equivalent.
-- `/auth google json_token` only as the advanced alternative for importing an
+- `/link cli:google` for the primary broker-assisted browser sign-in.
+- `/link cli:google json_token` only as the advanced alternative for importing an
   existing token export.
 
 Before the user authorizes an External Google OAuth app, tell them to open
@@ -164,7 +191,7 @@ token is issued, not by whether the callback URL is pasted manually.
 If `gog` reports `authorized as old@example.com, expected new@example.com`,
 explain that Google returned a different email than the one entered. If the
 user renamed that same account, explain that Google can keep reporting its
-old email to an existing linked app. Direct the user to restart `/auth google`
+old email to an existing linked app. Direct the user to restart `/link cli:google`
 with the address after `authorized as`, only if it belongs to their intended
 account, and use that authenticated address for explicit account selection.
 Otherwise, ask them to select the intended Google account in a fresh flow.
@@ -173,24 +200,21 @@ For using the new address with the OAuth app, refer to
 [Google's renamed-account troubleshooting](https://support.google.com/accounts/answer/16521710?hl=en).
 Do not request the callback URL or raw CLI output in chat.
 
-The token JSON from `gog auth tokens export` is portable across machines, but
-it does not include the OAuth client credentials needed to refresh/use that
-token. If the broker has not already installed the matching OAuth client,
-paste the Google Cloud OAuth client ID JSON into the same `/auth google` form
-so the broker can run `gog auth credentials set` before importing the token.
-The broker verifies token imports with `gog auth list --check` before reporting
-success. In current broker builds, the imported token and matching OAuth client
-JSON are persisted under `broker_credentials/gog/` when broker credential
-persistence is configured, and the broker reinstalls the OAuth client before
-future Google actions after container restarts. If the token file survived but
-the container-local OAuth client credentials are missing, ask the user to run
-`/auth google credentials` and paste only the matching OAuth client JSON.
+People sign in through a Google sign-in app (a Google Cloud "Desktop app"
+OAuth client). The broker uses the person's own app if they pasted one into
+the sign-in page (`/link cli:google`), otherwise the team's, which a team
+administrator or owner stores once with `/auth google team_client`. If the
+broker reports `google_oauth_client_missing`, tell the user that a team
+administrator needs to run `/auth google team_client`, or that they can paste
+their own Desktop app client JSON on the sign-in page (`/link cli:google`). Do
+not ask anyone to paste that JSON into chat. Google sign-ins are always
+personal: there is no team Google account, and `/link cli:google team` only
+explains this.
 
-The `/auth google` page needs broker-side gog OAuth client credentials. If
-the broker has not already run `gog auth credentials set <credentials.json>`, the
-page can accept the Google Cloud OAuth client ID JSON for a Desktop app and
-install it inside the broker before starting authorization. Do not ask the user
-to paste that JSON into chat.
+A token from `gog auth tokens export` works only with the OAuth client that
+issued it. For `/link cli:google json_token`, the user pastes that client's JSON into
+the same form when it is not the team's app; the broker checks the token with
+Google before storing it for that person.
 
 To get that JSON, the user opens Google Cloud Console > APIs & Services >
 Credentials, selects the project, configures OAuth consent if prompted, creates
@@ -199,7 +223,7 @@ JSON. The user pastes the JSON only into the broker page, not chat. The same
 project must have the needed Google APIs enabled, such as Gmail API, Calendar
 API, Drive API, Docs API, and Sheets API.
 
-Do not ask the user to use a Web application OAuth client for `/auth google`.
+Do not ask the user to use a Web application OAuth client for `/link cli:google`.
 The current `gog` manual flow chooses a dynamic localhost or 127.0.0.1 loopback
 redirect URI for each authorization, so the broker requires a Desktop app
 OAuth client JSON. A Web application client produces Google's `Error 400:
@@ -220,13 +244,14 @@ import must also use the OAuth client credentials that minted the token.
 If Google returns `invalid_grant`, “expired,” or “revoked,” tell the user that
 the token is no longer usable. If failure occurred roughly 7 days after
 authorization, explain the Testing-mode rule, tell them to promote the consent
-screen to In Production, and then ask them to run `/auth google` for a fresh
+screen to In Production, and then ask them to run `/link cli:google` for a fresh
 token. Also note that expiration/revocation has other possible causes; do not
 claim Testing is certain without timing or project-status evidence.
 
 For broker operations, do not ask the user to paste refresh tokens into chat.
-Credentials belong only in the broker form, a broker-only env file, mounted
-secret file, or broker-owned `gog` keyring/config directory.
+Google sign-ins and OAuth clients belong only in the broker's sign-in page
+(`/link cli:google`) and the team's sign-in app form
+(`/auth google team_client`); the broker keeps them in the credential store.
 
 ## Raw gog Ground Rules
 
@@ -575,18 +600,26 @@ gog --account admin@example.com admin orgunits list --type all
   Do not report a broker validator outage unless the actual tool input had
   `provider="google"`, the intended `action`, and the required nested
   `params` field.
-- If `secure_cli` returns `auth_required`, stop and ask the user for
-  the credential collection form with `/auth google web` or `/auth google`.
+- If `secure_cli` returns `auth_required` (`user_action` `/link cli:google`),
+  stop and ask the user to sign in with `/link cli:google`, or
+  `/link cli:google json_token` to import a gog token (the result's
+  `auth_options`).
 - If `secure_cli` returns `canonical_user_required` or says there is no active
   registered canonical user, do not recommend Google re-authentication. This is
   a UA runtime identity propagation failure. For scheduled work, report the
   schedule/job id and ask the operator to inspect its persisted owner and
   fired-task gateway context.
 - If `secure_cli` returns `google_unauthorized_client`, report that the
-  broker-installed OAuth client and imported token likely do not match or the
-  token was revoked. Ask the user to use the credential collection form to
-  rerun `/auth google json_token` with both the gog token JSON and matching
-  Google OAuth client ID JSON, or rerun `/auth google web`.
+  user's sign-in was made through a different Google sign-in app than the one
+  set up now, and ask them to sign in again with `/link cli:google`.
+- If `secure_cli` returns `google_oauth_client_missing`, ask a team
+  administrator to run `/auth google team_client`, or the user to paste their
+  own Desktop app client JSON on the sign-in page (`/link cli:google`).
+- If `secure_cli` returns `google_keyring_password_missing`, report that the
+  operator must set `GOG_KEYRING_PASSWORD` for the secure tool broker; the user
+  cannot fix it by signing in.
+- If `secure_cli` returns `person_required`, the request carried no person;
+  treat it like `canonical_user_required` below, not as a sign-in problem.
 - If a Google API says `accessNotConfigured`, report which API must be enabled
   on the OAuth project and retry only after the user confirms it is enabled.
 - If a first-class Google action does not exist, use `gog.exec` with an argv

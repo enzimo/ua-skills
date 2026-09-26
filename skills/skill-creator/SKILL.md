@@ -109,6 +109,14 @@ commands, and require inspection of separated output/error plus status, exit
 code, termination reason, RTK mode, and warnings. Route credentialed CLIs and
 loopback services through broker-owned tools instead of shell.
 
+In Universal Agents, installed team skills are read-only to every agent. Create
+or edit a skill as a draft folder in the task's own folders (run this skill's
+scripts as `"${SKILLS_DIR}/skill-creator/scripts/init_skill.py" <name> --path
+<task folder>`; to change an installed skill, copy it there first). TeamArchitect
+then proposes the draft with `plan_team_skill_change`, and the person reviews
+every skill change before it is installed. Packaging (Step 5) is only needed
+when sharing the skill outside the team.
+
 ## Skill Creation Process
 
 To create a skill, follow the "Skill Creation Process" in order, skipping steps only if there is a clear reason why they are not applicable.

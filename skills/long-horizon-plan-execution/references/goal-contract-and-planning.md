@@ -19,7 +19,7 @@ Capture:
 - scope, non-goals, hard constraints, and preferences
 - accepted and provisional success criteria, required evidence, and evaluators
 - failure, rollback, partial-delivery, stop, and acceptance conditions
-- authority envelope, risk tolerance, budget, and deadline
+- limits of authority, risk tolerance, budget, and deadline
 - assumptions, unknowns, inputs, dependencies, and first safe action
 - objective lifecycle authority and health-review cadence
 
