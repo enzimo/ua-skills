@@ -154,8 +154,14 @@ direct shell access is allowed.
 
 Do not ask the user to paste Google refresh tokens, OAuth client JSON,
 service-account keys, passwords, or exported token files into chat. If new or
-refreshed credentials are needed, ask the user to sign in with
-`/link cli:google` (or `/link cli:google json_token`).
+refreshed credentials are needed, TeamLead calls `set_up_tools` for
+`cli:google` without asking first: it opens the person's sign-in, after the
+team's Google sign-in app when that is missing and the person is an
+administrator; for anyone else it explains that a team administrator must run
+`/auth google team_client`, and the task ends. The task waits and resumes when
+the pages end (a specialist escalates to TeamLead).
+The person may also sign in themselves with `/link cli:google` (or
+`/link cli:google json_token`).
 
 The broker uses only the requesting person's own Google sign-in, in a private
 gog home created for each command and deleted afterwards. An agent working for
@@ -163,8 +169,9 @@ one person can never use another person's Google account, and a request for a
 person who has not signed in is refused with `auth_required` before gog runs.
 Google tokens never come from environment variables.
 
-Only when the broker returns `auth_required` should you ask the user to run one
-of:
+Only when the broker returns `auth_required` (or TeamLead's context does not
+list Google as ready) does TeamLead call `set_up_tools`; the person can also run
+one of:
 
 - `/link cli:google` for the primary broker-assisted browser sign-in.
 - `/link cli:google json_token` only as the advanced alternative for importing an
@@ -601,9 +608,9 @@ gog --account admin@example.com admin orgunits list --type all
   `provider="google"`, the intended `action`, and the required nested
   `params` field.
 - If `secure_cli` returns `auth_required` (`user_action` `/link cli:google`),
-  stop and ask the user to sign in with `/link cli:google`, or
-  `/link cli:google json_token` to import a gog token (the result's
-  `auth_options`).
+  stop and follow the tool setup steps: TeamLead calls `set_up_tools` for
+  `cli:google` (the person may also run
+  `/link cli:google`, or `/link cli:google json_token` to import a gog token).
 - If `secure_cli` returns `canonical_user_required` or says there is no active
   registered canonical user, do not recommend Google re-authentication. This is
   a UA runtime identity propagation failure. For scheduled work, report the
@@ -612,9 +619,12 @@ gog --account admin@example.com admin orgunits list --type all
 - If `secure_cli` returns `google_unauthorized_client`, report that the
   user's sign-in was made through a different Google sign-in app than the one
   set up now, and ask them to sign in again with `/link cli:google`.
-- If `secure_cli` returns `google_oauth_client_missing`, ask a team
-  administrator to run `/auth google team_client`, or the user to paste their
-  own Desktop app client JSON on the sign-in page (`/link cli:google`).
+- If `secure_cli` returns `google_oauth_client_missing`, the team's Google
+  sign-in app is not set up. For an administrator, `set_up_tools` opens the
+  team's sign-in app page first; for anyone else it explains
+  that a team administrator must run `/auth google team_client` (or that they
+  can paste their own Desktop app client JSON on the sign-in page,
+  `/link cli:google`) and ends the task.
 - If `secure_cli` returns `google_keyring_password_missing`, report that the
   operator must set `GOG_KEYRING_PASSWORD` for the secure tool broker; the user
   cannot fix it by signing in.

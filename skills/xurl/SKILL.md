@@ -41,10 +41,14 @@ the user to type commands that give access.
    (the person's sign-in, else the team's link).
    Verify the returned username matches the intended account.
 3. If the broker reports `x_account_missing`, the person has not signed in to
-   X and the team has no linked X account. Ask the person to sign in with
-   `/link cli:x`, then check `auth.status` again. Only when the team's shared
-   X account is intended does TeamLead request a team account link for `cli:x`
-   (`owner: "team"`, administrators only; a specialist escalates to TeamLead).
+   X and the team has no linked X account. TeamLead calls `set_up_tools` for
+   `cli:x` without asking first: it opens the sign-in (after the team's X app
+   when that is missing and the person is an administrator; otherwise it says
+   that an administrator must run `/auth x team_client`), and the task resumes
+   when the person finished; then check `auth.status` again. The person may also run `/link cli:x`
+   themselves. Only when the team's shared X account is intended does TeamLead
+   send a team account link for `cli:x` (kind `account_link`, `owner: "team"`,
+   administrators only; a specialist escalates to TeamLead).
    If the team has no stored X credential yet, TeamLead first renders the
    `xurl_oauth2` credential template using
    `credential_catalog.template.render_request`, sends the structured

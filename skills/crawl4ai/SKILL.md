@@ -41,10 +41,11 @@ variable (`CRAWL4AI_API_TOKEN` is refused at startup). When the broker reports
 `account_link_missing` for `mcp:crawl4ai`, tell the person that a team
 administrator links the team's token with `/link mcp:crawl4ai team` (and
 `/link http:crawl4ai team` for `capture_web_screenshot`), or have
-TeamArchitect load `secure-credential-workflows` and request an account link
-for `mcp:crawl4ai`. The person picks a stored token in the broker's form, or
-types a new one there to save and link it in one step. After
-`account_link_created`, retry; the tools load on the next step. Do not copy
+TeamArchitect load `secure-credential-workflows` and call `set_up_tools` for
+`mcp:crawl4ai`, which opens the account link form without asking first. The person
+picks a stored token in the broker's form, or types a new one there to save and
+link it in one step. After a completed result, retry; the tools load on the
+next step. Do not copy
 the token, edit YAML, or create a duplicate connection.
 Do not treat an OpenShell lease as MCP authority. Treat `active` as
 installation state and `operator_configured` as the original configuration,

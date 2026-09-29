@@ -34,14 +34,15 @@ A successful `TaskStatus` refresh confirms liveness, not progress or approval.
 The runtime spaces status probes using the last successful probe; do not create
 replacement tasks just because a worker is waiting. A missing reply is a
 transport or responsiveness observation, not evidence that the task completed.
-For a missing account, TeamLead emits one `secure_account_link_request`. The
-runtime routes it to the configured gateway even when a worker needed the
-account. Wait for its typed broker result (`account_link_created`,
-`account_link_declined`, or `account_link_unavailable`) instead of treating
-tool approval as a linked account or requesting another link while one is
-pending. GitHub, Google and X use the person's own sign-in instead, which only
-the person starts with `/link <tool id>`; ask them to run it and never request
-a personal account link for those tools.
+For a missing sign-in, account link or team sign-in app, TeamLead calls
+`set_up_tools` at once, without asking the person first. Trusted code asks for
+missing access, opens every page in the person's chat (routed to the
+configured gateway even when a worker needed the account), shows one workflow
+page for two or more things (each page shows on its step, and trusted code
+marks the step from the page result), and pauses the task until the pages end
+instead of treating tool approval as a set-up account. An expired page is
+offered again by itself, up to three pages per tool and kind; a closed page or
+a denial ends the setup, and the call returns per tool whether it is ready.
 
 A published access workflow belongs to its source Task and is a view over its
 access requests. Staging its changes or closing the local execution plan does
@@ -251,7 +252,7 @@ Use this negotiation sequence:
 
 Discuss the complete profile rather than changing one limit in isolation:
 
-- cadence and UTC schedule
+- cadence and its time zone (`owner` by default: the Objective owner's time zone)
 - active duration and wall-clock checkpoint reserve
 - total turns and checkpoint-reserved turns
 - total input-plus-output tokens and checkpoint-reserved tokens

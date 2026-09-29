@@ -28,8 +28,9 @@ environment variables: never set or ask for `HF_TOKEN` (startup refuses it).
    destination. Do not execute downloaded model code as part of a download.
 3. For private/gated downloads or uploads, check `secure_cli` provider
    `huggingface`, action `auth.status`, with `params={}`. Verify the returned
-   account. If the broker reports `account_link_missing`, TeamLead requests an
-   account link for `cli:huggingface` (a specialist escalates to TeamLead). If
+   account. If the broker reports `account_link_missing`, TeamLead calls
+   `set_up_tools` for `cli:huggingface`, which opens the account link form
+   (a specialist escalates to TeamLead). If
    no Hugging Face token is stored yet, the person types it into that account
    link form, which saves it and links it in one step.
    Never ask for token values in chat or hydrate them into the agent's shell,
