@@ -7,6 +7,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The long-horizon runtime mapping and the repository guidance follow
+  Universal Agents' "access follows the work": workers keep no access of their
+  own, each task gets what TeamLead may hand on, TeamLead asks with
+  `request_access` and `hand_on=true`, and scheduled jobs a worker runs hold
+  their own access. TeamLead keeps its access in its scheduled runs, and
+  workers in TeamLead's schedules and the runtime's timers get what it hands
+  on. `give_access` is gone, and `request_access` takes no `operation`.
+
 - `gh`, `gog`, `xurl` and the long-horizon runtime mapping use `/link <tool id>`,
   the one command people now use for every tool's account: `/link cli:github`
   (`web`, `web-all`), `/link cli:google` (`json_token`) and `/link cli:x`.

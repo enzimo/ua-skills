@@ -114,8 +114,10 @@ settings; retain operator control of explicit denies, the kill switch and limits
 Keep memory timers on the local MemReviewAgent scheduler and document the offline
 upgrade for old TeamArchitect timers. Preserve queued review records; distinguish
 them from claimed jobs, saved worker tasks, and pending NATS deliveries.
-Check `list_my_access` before handing access on with `give_access` or asking
-for it with `request_access`.
+Access follows the work: workers keep no access of their own and each task gets
+what TeamLead may hand on; TeamLead checks `list_my_access` and asks with
+`request_access` (`hand_on=true` for what workers will use). There is no
+`give_access`.
 Keep review-batch continuation, actionable Inbox status and tool-returned workflow
 links synchronized with Universal Agents' runtime mapping.
 

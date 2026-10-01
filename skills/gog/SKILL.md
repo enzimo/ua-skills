@@ -57,6 +57,11 @@ Supported Google broker actions:
 | Export Google Doc | `docs_export` | `id`, optional `path`, `format` or `mime_type` |
 | Read Sheets range | `sheets_read` | `id`, optional `range` (`path` is accepted as a legacy alias) |
 
+A scheduled job that uses Google declares each action it needs as a
+requirement: `capability_id` is `cli:google` and `operation` is the action, for
+example `{"capability_id": "cli:google", "operation": "gmail_search"}` plus
+`gmail_read` for a Gmail check. `secure_cli` is the function, not an operation.
+
 For first-class broker actions, use exactly the listed `params` keys. Do not
 invent aliases or nest parameters under `email`, `message`, `request`, or
 similar wrapper objects. The broker validates the canonical keys before running

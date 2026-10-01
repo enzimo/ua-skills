@@ -59,8 +59,9 @@ progress links. Never use a skill documentation address as the workflow link.
 Ask for independent staged changes together with
 `request_access_workflow_approvals` (one pause for all of them), then apply each
 approved change with `apply_change`, and check every outcome before reporting.
-When the lead itself lacks a tool a worker needs, it calls `request_access` first
-and then hands the access on with `give_access`. Never ask again for anything a
+When the lead itself lacks a tool a worker needs, it calls `request_access` with
+`hand_on=true`; the worker's task then gets it from the lead's access when it
+needs it (access follows the work: workers keep no access of their own). Never ask again for anything a
 person denied: the denial closes its workflow step.
 
 ## Use Hierarchical Objective Plans and the Work Ledger
@@ -138,11 +139,11 @@ may coexist in the ledger; their placement and authority boundaries remain
 distinct.
 
 The run's worker starts with its role's standard tools, and its tool list
-follows the access it holds for the person the Objective works for. Give it
-the tools the question needs with `give_access` when you may hand them on. If
-the worker asks with `request_access`, treat the wait as a checkpoint: the
-task pauses until the access is handed down or a person decides, and a grant
-is usable on the worker's next step without a restart. An Objective-linked
+follows the access its task has for the person the Objective works for: the
+task gets the tools the question needs from what the lead may hand on, when it
+first needs them. If the worker asks with `request_access`, treat the wait as a
+checkpoint: the task pauses until a person decides, and a grant is usable on
+the worker's next step without a restart. An Objective-linked
 wait releases its local slot and must reacquire it before resuming. New web
 API tools, data folders, account links and MCP servers stay on their reviewed
 paths (`propose_access_change`, MCP installation); a worker request never
@@ -462,7 +463,10 @@ configure its automatic worker policy with `configure_scheduled_worker`. Use
 `requirements_json` when creating the job. Keep known-blocked jobs as inactive
 drafts. Declare each requirement as a tool catalog id and one of its operations
 (`find_tools` lists them); mark branch-dependent needs conditional and leave
-`runtime_discovery` enabled for open-ended work.
+`runtime_discovery` enabled for open-ended work. To change them, call
+`configure_scheduled_worker` with the current revision and the complete new
+`requirements_json`; it replaces the saved list whether automatic startup is on
+or off. Confirm the result's `saved_requirements` and `summary` show the change.
 
 Use `prepare_scheduled_job_access` to check requirements and
 `authorize_scheduled_job_access(schedule_id, expected_revision)` to give the
@@ -483,10 +487,10 @@ and a terminal task result. A worker may retire between runs; retain the schedul
 policy so the controller can cover the next occurrence. Do not publish a second
 copy of a scheduled payload to NATS.
 
-When a scheduled run is refused with `access_denied`, the worker calls
-`request_access` with the `tool_id`, `operation`, and `level` it names. If
-TeamLead may hand the access on, it arrives at once; otherwise the run waits for
-a person in the Inbox. Ask with the default `lifetime="until_revoked"` for access
+When a scheduled job's run is refused with `access_denied`, the worker calls
+`request_access` with the `tool_id` and `level` it names. A person decides in
+the Inbox while the run waits ("Keep" gives it to the job); give the job what
+every run needs beforehand with `authorize_scheduled_job_access`. Ask with the default `lifetime="until_revoked"` for access
 every run needs; `task` or `one_time` access ends with the run. For a tool the
 catalog lacks or missing credentials, use `manager_escalation` with the schedule
 and the tool ID. Wait through the existing task workflow and verify the actual
@@ -517,9 +521,10 @@ tasks. Require stopped team runtimes and completed old NATS deliveries before ap
 Do not delete records or mark reviews complete to clear an upgrade check. Keep
 system-schedule edits on their staged approval path and verify actual review
 jobs and results.
-Check `list_my_access`, then hand on
-missing access with `give_access` or ask for it with `request_access`; respect
-denied requests. Read the scheduled-worker repair
+Check `list_my_access`, then ask for
+missing access with `request_access` (`hand_on=true` for what workers will
+use; a scheduled job's own access comes from `authorize_scheduled_job_access`);
+respect denied requests. Read the scheduled-worker repair
 reference in `runtime-operations-workflows` for tuning and completion checks.
 Keep explicit operator denies, the kill switch, quotas, leases and timing
 ceilings outside these edits.
