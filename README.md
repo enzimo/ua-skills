@@ -188,3 +188,7 @@ link, preserve checkpoints, and explicitly resume a blocked Objective after repa
 Task-backlog guidance uses Settings → Tasks to inspect work grouped by running
 agent. **Purge this queue** applies to the selected agent's queued and waiting work
 and preserves current work. /stop continues to inspect the TeamLead task trees.
+
+Access-denial guidance distinguishes missing permission from an access check
+that could not run. Follow the returned repair step for service failures;
+request permission only for a confirmed lack of access.

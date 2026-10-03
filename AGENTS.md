@@ -150,3 +150,7 @@ Keep task-backlog guidance aligned with the per-agent sections in Settings → T
 Select the affected agent before purging its queue. Distinguish queue purge
 from stopping all work, and preserve owner scope, cancellation history and schedules.
 Treat a missing control reply as unconfirmed; inspect current state before retrying.
+
+Keep access-denial guidance tied to the returned reason and next step. If an
+access check could not run, report the operator repair step and wait for
+restoration before checking again. Requesting permission cannot repair a service.

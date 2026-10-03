@@ -407,9 +407,13 @@ authority. Let the access service's decisions and mandatory local guards
 control protected actions. Keep access, invocation, schedule, settings,
 credentials, provisioning, and skill lifecycle authorities distinct.
 
-Ask for access with `request_access` only after a call is refused with
-`access_denied`, using the `tool_id`, `operation`, and `level` it names. Resume
-from the returned decision without widening it.
+Read the `reason` and `next_step` of an `access_denied` result first. If the
+access check could not run, report the blocker and follow the returned operator
+repair step; a new permission request cannot restore the service. Resume
+dependent work only after the service is restored and access is checked again.
+For a confirmed lack of permission, ask with `request_access` using the
+`tool_id`, `operation`, and `level` the refusal names. Resume from the returned
+decision without widening it.
 
 When a worker asks with `request_access`, the runtime hands the access down at
 once if TeamArchitect holds it and may hand it on without asking. Otherwise the
@@ -487,7 +491,8 @@ and a terminal task result. A worker may retire between runs; retain the schedul
 policy so the controller can cover the next occurrence. Do not publish a second
 copy of a scheduled payload to NATS.
 
-When a scheduled job's run is refused with `access_denied`, the worker calls
+For a scheduled job's `access_denied` result, apply the checks in
+**Preserve Authorization** first. If permission is missing, the worker calls
 `request_access` with the `tool_id` and `level` it names. A person decides in
 the Inbox while the run waits ("Keep" gives it to the job); give the job what
 every run needs beforehand with `authorize_scheduled_job_access`. Ask with the default `lifetime="until_revoked"` for access
