@@ -41,7 +41,7 @@ Below is a summary of the skills currently available in this repository:
 | **`single-page-site`** | Builds Universal Agents-styled single-page articles, comparisons, how-tos, and interactive apps with optional structured UI and follow-up chat. |
 | **`skill-creator`** | Guides creation and iterative improvement of effective skills through concrete examples, reusable resources, progressive disclosure, packaging, and feedback. |
 | **`systematic-debugging`** | Applies a four-phase debugging methodology with root cause analysis before fixes. |
-| **`user-onboarding-guide`** | Guides early Universal Agents conversations with a warm opt-in capability tour, relatable examples, documentation links, finish handling, and remembered progress. |
+| **`user-onboarding-guide`** | Guides early Universal Agents conversations with a warm opt-in tour of the team, sign-ins, the Inbox, schedules, objectives, memory, files and the Web Chat screen, then a menu of deeper and administrator-only topics, with remembered progress. |
 
 ---
 

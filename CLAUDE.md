@@ -34,7 +34,11 @@ configuration.
 ## Available Skills
 
 The canonical list of available skills is maintained in `README.md` under "Available Skills". Update that table when adding, removing, or renaming skills under `skills/`.
-The catalog includes `user-onboarding-guide` for Universal Agents first-run opt-in capability tours.
+The catalog includes `user-onboarding-guide` for Universal Agents first-run opt-in capability tours:
+a core tour, then a menu of deeper topics, fitted to the chat app (the `Channel:` line) and to whether
+the person is an administrator (the runtime's `Person you work for:` line). Keep the Web Chat labels and
+the commands in its `references/` aligned with the Universal Agents Web Chat and `/help`, and show
+administrator topics only to administrators.
 The catalog includes `single-page-site` for generated articles, comparisons,
 procedural how-tos, and browser-local interactive apps. Keep it aligned with
 how Universal Agents serves pages: from `sites/` of the person's folder, only
