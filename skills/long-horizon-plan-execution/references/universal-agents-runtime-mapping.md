@@ -32,7 +32,10 @@ the required task-local context in every delegation.
 
 A successful `TaskStatus` refresh confirms liveness, not progress or approval.
 The runtime spaces status probes using the last successful probe; do not create
-replacement tasks just because a worker is waiting. A missing reply is a
+replacement tasks just because a worker is waiting. A delegated task waits in
+its worker type's queue until a free worker takes it; the runtime starts
+workers and does not probe or time out a task that is still waiting, so do not
+start workers or delegate it again. A missing reply is a
 transport or responsiveness observation, not evidence that the task completed.
 For a missing sign-in, account link or team sign-in app, TeamLead calls
 `set_up_tools` at once, without asking the person first. Trusted code asks for
