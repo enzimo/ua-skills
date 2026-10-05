@@ -63,39 +63,29 @@ When the broker reports Bitwarden auth is required, ask the user to run:
 /auth bitwarden
 ```
 
-The current broker flow does not provide `/auth bitwarden web`. Bitwarden CLI
-supports multiple login methods, including email/password, API key, and SSO, but
-vault data still requires an unlocked session key. The broker therefore accepts
-an unlocked `BW_SESSION` value and verifies it with `bw status`.
+Open the returned broker form. Direct the person to enter their Bitwarden API
+client ID, client secret and master password there. Use credentials already
+configured in the broker when the form reports them available. The broker runs
+API-key login and unlock in that person's credential scope. Never request those
+values or an unlocked `BW_SESSION` in chat.
 
-User-side setup in a trusted shell:
+For a self-hosted Bitwarden or Vaultwarden server, configure its address first:
 
-```bash
-bw login
-export BW_SESSION="$(bw unlock --raw)"
+```text
+/auth bitwarden server https://bitwarden.example.com
 ```
 
-Then open the `/auth bitwarden` broker URL and paste only the session value into
-the broker form. The credential is submitted directly to the secure broker and
-is not sent to the agent.
+Then run `/auth bitwarden` again for that server. If the broker refuses a switch
+because its CLI is logged in to another server, pass on the reported operator
+action before retrying. Do not ask the user to exec into the broker container
+to log in, unlock or copy a session.
 
-For API-key or SSO login, the same unlock step is still required before vault
-data can be used:
-
-```bash
-bw login --apikey
-export BW_SESSION="$(bw unlock --raw)"
-```
-
-```bash
-bw login --sso
-export BW_SESSION="$(bw unlock --raw)"
-```
-
-If Bitwarden reports the vault is locked or the broker reports `auth_required`,
-the session may be missing, expired, locked, logged out, or invalid for the
-broker process. Ask the user to unlock again and resubmit through
-`/auth bitwarden`.
+If the form reports that login is saved for the next broker restart, describe
+that pending state and follow its operator instructions. Do not claim sign-in
+succeeded or restart the broker automatically. After login completes, inspect
+`/auth status` and retry the original broker action. If the vault is locked or
+the broker returns `auth_required`, reopen `/auth bitwarden` and complete its
+login/unlock form.
 
 ## Common Broker Workflows
 
@@ -201,8 +191,8 @@ bw sync
   `/auth bitwarden`; do not ask for `BW_SESSION` in chat.
 - If `bw` is not installed in the broker/container, report that the broker host
   needs the Bitwarden CLI installed or bundled before retrying.
-- If `bw status` says the vault is locked, ask the user to unlock and submit a
-  fresh session through `/auth bitwarden`.
+- If `bw status` says the vault is locked, direct the person to the broker's
+  login/unlock form through `/auth bitwarden`.
 - If item lookup by name is ambiguous, use `credential.search` first and then
   reference the chosen `item_id`.
 - For any action that uses a secret, summarize the target provider/action and

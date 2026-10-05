@@ -168,6 +168,11 @@ Select the affected agent before purging its queue. Distinguish queue purge
 from stopping all work, and preserve owner scope, cancellation history and schedules.
 Treat a missing control reply as unconfirmed; inspect current state before retrying.
 
+Keep `bw` authentication aligned with the broker's API-key login/unlock form
+and `/auth bitwarden server` command. Never direct a person to enter a broker
+container or paste an unlocked session in chat. Treat restart-based login as
+pending until the broker confirms completion.
+
 Keep access-denial guidance tied to the returned reason and next step. If an
 access check could not run, report the operator repair step and wait for
 restoration before checking again. Requesting permission cannot repair a service.

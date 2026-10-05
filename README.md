@@ -31,7 +31,7 @@ Below is a summary of the skills currently available in this repository:
 | **`hf-cli`** | Searches Hugging Face models/datasets and performs bounded brokered file transfers. |
 | **`brave-search`** | Uses Brave Search API for independent-index web search, LLM grounding context, freshness filters, Goggles ranking, and provider comparison workflows. |
 | **`build-project-room`** | Prepares gated project rooms for high-stakes, multi-source knowledge work from messy or conflicting source material. |
-| **`bw`** | Uses Bitwarden through the `bw` CLI or brokered secure CLI actions for auth, credential search, metadata lookup, and secret use. |
+| **`bw`** | Uses Bitwarden through brokered secure CLI actions and the login/unlock form, configures self-hosted servers with `/auth bitwarden server`, and searches credential metadata without revealing secrets. |
 | **`crawl4ai`** | Coordinates MCP setup, account links and Inbox review, then uses the available Crawl4AI tools for rendered retrieval, extraction, screenshots, PDFs, and crawl workflows. |
 | **`long-horizon-plan-execution`** | Guides self-sustaining teams through goal contracts, independent Objective/Plan/Task lifecycles, evolving completion criteria, actionable-frontier planning, level-specific progress definitions, supervised replanning, selective alternatives, negotiated work sessions, adaptive OODA execution, recovery, and evidence-based closure. |
 | **`gh`** | Uses GitHub from a terminal-only environment through `gh` or brokered secure CLI actions for repositories, issues, PRs, Actions, releases, search, and API calls. |
