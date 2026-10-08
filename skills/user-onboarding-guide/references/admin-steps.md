@@ -14,11 +14,12 @@ Explain how to add people, then roles, then stopping someone's access.
 - **Someone on Telegram, Discord, WhatsApp, Signal or iMessage:** send
   `/user <their id in that app> "Alice"` from that same app. The docs page
   `/docs/newuser/` explains how to find each app's id.
-- **Model keys:** new people do not use the team's model keys unless the
-  instance is set up that way, so their requests do not run until they add
-  their own key (`/auth model me`). Add `--team-keys` when adding someone to
-  let their work use the team's keys, or change it later with
-  `/user team-keys <usr_id> on`.
+- **Model keys:** people added from now on may use the team's model keys,
+  unless an administrator sent `/accounts private model`. Add `--own-keys`
+  when adding someone so their work uses only their own key (`/auth model me`)
+  and does not run until they add it, or `--team-keys` to let it use the
+  team's keys either way. Change one person later with
+  `/user team-keys <usr_id> on|off`.
 - **Roles:** owner, admin, member. `/user role <usr_id> admin` changes a role.
   Only an owner makes or changes an owner, and the team always keeps at least
   one owner and one administrator.
@@ -29,7 +30,7 @@ Explain how to add people, then roles, then stopping someone's access.
   them back.
 
 ```text
-👥 To add someone who'll use Web Chat, send `/user invite --new "Alice" --team-keys` and give her the address and one-time code it returns. For Telegram or Discord, send `/user <their id> "Alice"` from that app. `--team-keys` lets her work use the team's model keys; without it she'll need her own key first.
+👥 To add someone who'll use Web Chat, send `/user invite --new "Alice"` and give her the address and one-time code it returns. For Telegram or Discord, send `/user <their id> "Alice"` from that app. Her work uses the team's model keys unless you add `--own-keys`, which means she'll need her own key first.
 ```
 
 ## admin_keys
@@ -39,8 +40,15 @@ Explain how to add people, then roles, then stopping someone's access.
 - `/auth google team_client` and `/auth x team_client` store the team's
   sign-in app for Google and X. People still sign in with their own accounts;
   storing the app gives nobody access by itself.
-- `/link <tool> team` links a team account for tools that have one, such as
-  `/link cli:x team`. Each person's own link is used first.
+- `/accounts` shows whose account agents use for each service. Shared: the
+  team's account serves anyone who has not linked their own. Private: each
+  person's work uses only their own account. `/accounts share <tool>` and
+  `/accounts private <tool>` change it; `/accounts share model` and
+  `/accounts private model` decide whether people added from now on may use
+  the team's model keys. Every administrator gets an Inbox notice of a change.
+- `/link <tool> team` links a team account for a service the team shares,
+  such as `/link http:exa team`. Each person's own link is used first. X
+  starts private: send `/accounts share cli:x` before `/link cli:x team`.
 - `/auth` shows each key's state without showing the key.
 
 ## admin_grow_team

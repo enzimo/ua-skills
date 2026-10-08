@@ -13,19 +13,23 @@ X is the catalog tool `cli:x`: brokered `auth.status` (read) and `post.create`
 `cli:x` at `read`, posting needs `write`. If `secure_cli` or `cli:x` is not in
 your tools, call `find_tools` and then `request_access`; a tool you are given
 appears on your next model call, with no restart. Giving access needs no
-credential step. The broker posts with the person's own X sign-in first, then
-the team's X account linked to the `cli:x` tool. Each person signs in with
-their own X account by running `/link cli:x` themselves, which opens the
-broker's X sign-in page; only a team administrator or owner links the team's
-account (`/link cli:x team`), which is used for people who have not signed in.
+credential step. The broker posts with the person's own X sign-in first. It
+uses the team's X account linked to the `cli:x` tool, for people who have not
+signed in, only while the team shares X. X is private until an administrator
+or owner shares it (`/accounts share cli:x`); while it is private, each
+person's work needs their own sign-in, work that serves no person cannot use
+X, and `/link cli:x team` is refused. `/accounts` shows whether the team shares
+X. Each person signs in with their own X account by running `/link cli:x`
+themselves, which opens the broker's X sign-in page; once X is shared, only a
+team administrator or owner links the team's account (`/link cli:x team`).
 People never link a personal X account. X credentials never come from
 environment variables. Apart from the sign-in command, do not ask the user to
 type slash commands. If the catalog lacks `cli:x`, report the runtime version
 gap; do not invent a registration request.
 
 For a setup-and-post goal, publish a complete `submit_access_workflow` plan before
-asking for anything. Include the X account (the person's own sign-in, or an
-`account` step for the team's account link), account verification (`tool_access` `cli:x` at `read`), the exact post review and
+asking for anything. Include the X account (the person's own sign-in, or, only while the team
+shares X, an `account` step for the team's account link), account verification (`tool_access` `cli:x` at `read`), the exact post review and
 publication (`cli:x` at `write`), and a check of its returned URL. Follow the workflow section of `runtime-operations-workflows`. Ask
 for independent staged changes together with `request_access_workflow_approvals`,
 then apply each approved one with `apply_change`; keep dependent or
@@ -38,17 +42,21 @@ the user to type commands that give access.
    hold `cli:x` at `read`, call `secure_cli` with provider `xurl`, action
    `auth.status`, and `params={}`. Do not pass `credential_key` or any other
    account selector; the broker refuses them and picks the account itself
-   (the person's sign-in, else the team's link).
+   (the person's sign-in, else the team's link while the team shares X).
    Verify the returned username matches the intended account.
 3. If the broker reports `x_account_missing`, the person has not signed in to
-   X and the team has no linked X account. TeamLead calls `set_up_tools` for
+   X and no team X account is in use (X is private, or shared without a linked
+   team account). TeamLead calls `set_up_tools` for
    `cli:x` without asking first: it opens the sign-in (after the team's X app
    when that is missing and the person is an administrator; otherwise it says
    that an administrator must run `/auth x team_client`), and the task resumes
    when the person finished; then check `auth.status` again. The person may also run `/link cli:x`
-   themselves. Only when the team's shared X account is intended does TeamLead
-   send a team account link for `cli:x` (kind `account_link`, `owner: "team"`,
-   administrators only; a specialist escalates to TeamLead).
+   themselves. Only when the team shares X and its X account is intended does
+   TeamLead send a team account link for `cli:x` (kind `account_link`,
+   `owner: "team"`, administrators only; a specialist escalates to TeamLead).
+   While X is private, never request the team's account: say that the team
+   keeps X private, so the person's own sign-in is needed, and that an
+   administrator decides whether to share X (`/accounts share cli:x`).
    If the team has no stored X credential yet, TeamLead first renders the
    `xurl_oauth2` credential template using
    `credential_catalog.template.render_request`, sends the structured
@@ -92,8 +100,9 @@ result says `granted`.
 
 If `auth.status` returns a different username than intended, the wrong account
 is in use. The person signs in again with `/link cli:x` using the intended
-account, or, when the team's account is intended and wrong, TeamLead requests a
-new team account link for `cli:x`, which replaces the old one. Do not guess
+account, or, when the team shares X and its account is intended and wrong,
+TeamLead requests a new team account link for `cli:x`, which replaces the old
+one. Do not guess
 another credential.
 
 Keep credentials in Sealbox or the configured broker store. The broker hydrates

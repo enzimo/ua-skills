@@ -140,7 +140,7 @@ Administrator topics, from [admin-steps.md](references/admin-steps.md):
 | Topic id | Topic |
 |---|---|
 | `admin_people` | Adding people, roles, disabling and removing |
-| `admin_keys` | The team's model keys and sign-in apps |
+| `admin_keys` | The team's model keys, sign-in apps and shared accounts |
 | `admin_grow_team` | New specialists, team skills and new services |
 | `admin_access` | Team-wide access, blocks and internet access |
 | `admin_status` | The Status page |

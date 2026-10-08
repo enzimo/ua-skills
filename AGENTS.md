@@ -10,7 +10,7 @@ one Inbox card (`propose_access_change` with `mcp_servers`, or
 controls; full access to `mcp:crawl4ai` covers every Crawl4AI tool. A
 connection whose operator configuration declares credential slots uses the
 stored token linked to `mcp:crawl4ai` (the person's own link first, then the
-team's). Never treat an OpenShell lease as MCP authority or copy a token into
+team's while the team shares it). Never treat an OpenShell lease as MCP authority or copy a token into
 configuration.
 
 ## Intent is king
@@ -104,8 +104,10 @@ agents to copy Sealbox values into their own shell environments.
 
 Use the existing `builtin:x_posting` capability for reviewed specialist X access.
 Keep its X account (the person's own sign-in with `/link cli:x`, else the
-team's account link), attachment, and access to `cli:x` separate; ask for
-missing X access with `request_access`. In every skill, people set up a tool's
+team's account link only while the team shares X), attachment, and access to
+`cli:x` separate; ask for missing X access with `request_access`. Each team
+chooses per service whether its account is shared or private (`/accounts`); a
+private service uses only each person's own account. In every skill, people set up a tool's
 account with `/link <tool id>` (GitHub, Google and X sign-ins included);
 `/auth` keeps only status, the team's sign-in apps (`team_client`) and the
 password managers.
