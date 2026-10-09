@@ -22,7 +22,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `user-onboarding-guide` explains `/accounts` to administrators and that people
   added from now on may use the team's model keys unless an administrator sends
   `/accounts private model` (`--own-keys` and `/user team-keys` still decide
-  per person).
+  per person). It also tells administrators that a new person sees their
+  first-time setup (their own model when needed, their own account for each
+  private service) on their first message, and that `/setup` repeats it.
 
 - The long-horizon runtime mapping and the repository guidance follow
   Universal Agents' "access follows the work": workers keep no access of their

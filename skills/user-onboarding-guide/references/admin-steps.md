@@ -20,6 +20,12 @@ Explain how to add people, then roles, then stopping someone's access.
   and does not run until they add it, or `--team-keys` to let it use the
   team's keys either way. Change one person later with
   `/user team-keys <usr_id> on|off`.
+- **First-time setup:** the reply to adding someone ends with what they still
+  set up for themselves: their own model when they may not use the team's
+  keys, and their own account for every service the team keeps private
+  (GitHub and Google always are). They see that list on their first message;
+  when their model is missing, that first message waits until they add it.
+  `/setup` shows what is left at any time.
 - **Roles:** owner, admin, member. `/user role <usr_id> admin` changes a role.
   Only an owner makes or changes an owner, and the team always keeps at least
   one owner and one administrator.
@@ -30,7 +36,7 @@ Explain how to add people, then roles, then stopping someone's access.
   them back.
 
 ```text
-👥 To add someone who'll use Web Chat, send `/user invite --new "Alice"` and give her the address and one-time code it returns. For Telegram or Discord, send `/user <their id> "Alice"` from that app. Her work uses the team's model keys unless you add `--own-keys`, which means she'll need her own key first.
+👥 To add someone who'll use Web Chat, send `/user invite --new "Alice"` and give her the address and one-time code it returns. For Telegram or Discord, send `/user <their id> "Alice"` from that app. Her work uses the team's model keys unless you add `--own-keys`, which means she'll need her own key first. Her first message shows her what to set up for herself, and `/setup` shows it again.
 ```
 
 ## admin_keys
