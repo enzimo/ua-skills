@@ -17,14 +17,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `/accounts private <tool>`. `xurl` says that X starts private, so the team's
   X account is the fallback only after `/accounts share cli:x`, and tells agents
   never to request the team's X account while X is private. `hf-cli`,
-  `crawl4ai` and `brave-search` say that the team's account is used only while
-  shared (the default). `gog` says that Google Workspace is always private.
+  `brave-search` and the Crawl4AI MCP connection (`crawl4ai`) say that the
+  team's account is used only while shared (the default); `crawl4ai` also says
+  that the Crawl4AI web tool (`http:crawl4ai`) takes only the team's token and
+  is always shared. `gog` says that Google Workspace is always private.
   `user-onboarding-guide` explains `/accounts` to administrators and that people
   added from now on may use the team's model keys unless an administrator sends
   `/accounts private model` (`--own-keys` and `/user team-keys` still decide
   per person). It also tells administrators that a new person sees their
   first-time setup (their own model when needed, their own account for each
-  private service) on their first message, and that `/setup` repeats it.
+  private service someone in the team already uses) on their first message,
+  and that `/setup` repeats it.
 
 - The long-horizon runtime mapping and the repository guidance follow
   Universal Agents' "access follows the work": workers keep no access of their

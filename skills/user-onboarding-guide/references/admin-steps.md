@@ -23,7 +23,8 @@ Explain how to add people, then roles, then stopping someone's access.
 - **First-time setup:** the reply to adding someone ends with what they still
   set up for themselves: their own model when they may not use the team's
   keys, and their own account for every service the team keeps private
-  (GitHub and Google always are). They see that list on their first message;
+  (GitHub and Google always are) that someone in the team already uses. They
+  see that list on their first message;
   when their model is missing, that first message waits until they add it.
   `/setup` shows what is left at any time.
 - **Roles:** owner, admin, member. `/user role <usr_id> admin` changes a role.
