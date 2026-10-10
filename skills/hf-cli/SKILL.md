@@ -12,8 +12,12 @@ install a package named `hf-cli` or run a runtime self-update.
 
 Broker requests take no `credential_key` or other account selector. The broker
 uses the account linked to the `cli:huggingface` tool: the person's own link
-first, then the team's. Each person may link their own Hugging Face account; only
-a team administrator or owner links the team's. No Hugging Face token comes from
+first, then the team's while the team shares Hugging Face (the default). Each
+person may link their own Hugging Face account; only a team administrator or
+owner links the team's. When an administrator makes Hugging Face private
+(`/accounts private cli:huggingface`), the team's account is not used, not even
+for work that serves no person: each person's work needs their own link, and
+a team account link is refused. `/accounts` shows whether the team shares it. No Hugging Face token comes from
 environment variables: never set or ask for `HF_TOKEN` (startup refuses it).
 
 1. Choose the requested repository, type, operation, and artifact. Search public

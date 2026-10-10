@@ -220,8 +220,9 @@ broker reports `google_oauth_client_missing`, tell the user that a team
 administrator needs to run `/auth google team_client`, or that they can paste
 their own Desktop app client JSON on the sign-in page (`/link cli:google`). Do
 not ask anyone to paste that JSON into chat. Google sign-ins are always
-personal: there is no team Google account, and `/link cli:google team` only
-explains this.
+personal: there is no team Google account, `/link cli:google team` only
+explains this, and `/accounts` lists Google Workspace as always private, so
+an administrator cannot share it.
 
 A token from `gog auth tokens export` works only with the OAuth client that
 issued it. For `/link cli:google json_token`, the user pastes that client's JSON into

@@ -19,7 +19,10 @@ users.read offline.access`. Each person then signs in with `/link cli:x`; the
 broker keeps that sign-in under the person and saves its refreshes.
 
 The team's own X account, used for people who have not signed in, is an
-account link that only an administrator creates (`/link cli:x team`). To
+account link that only an administrator creates (`/link cli:x team`). It is
+used only while the team shares X: X starts private, an administrator shares
+it with `/accounts share cli:x`, and `/link cli:x team` is refused until then.
+A team account linked earlier is kept, unused, while X is private. To
 produce its credential, complete `xurl auth oauth2` or its `--headless` flow on
 a trusted operator computer. Keep the client secret out of command history and
 agent context. The operator can export one account from the resulting local

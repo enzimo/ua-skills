@@ -7,6 +7,28 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `xurl`, `hf-cli`, `gog`, `crawl4ai`, `brave-search` and
+  `user-onboarding-guide` follow Universal Agents' per-team sharing choice for
+  each service that takes both a person's own and the team's account. Shared:
+  the team's account serves anyone who has not linked their own. Private: the
+  team's account is never used, not even for work that serves no person, and
+  `/link <tool> team` is refused. `/accounts` shows the choices, and owners and
+  administrators change them with `/accounts share <tool>` and
+  `/accounts private <tool>`. `xurl` says that X starts private, so the team's
+  X account is the fallback only after `/accounts share cli:x`, and tells agents
+  never to request the team's X account while X is private. `hf-cli`,
+  `brave-search` and the Crawl4AI MCP connection (`crawl4ai`) say that the
+  team's account is used only while shared (the default); `crawl4ai` also says
+  that the Crawl4AI web tool (`http:crawl4ai`) takes only the team's token and
+  is always shared. `gog` says that Google Workspace is always private.
+  `user-onboarding-guide` explains `/accounts` to administrators and that people
+  added from now on may use the team's model keys unless an administrator sends
+  `/accounts private model` (`--own-keys` and `/user team-keys` still decide
+  per person). It also tells administrators that a new person sees their
+  first-time setup (their own model when needed, their own account for each
+  private service someone in the team already uses) on their first message,
+  and that `/setup` repeats it.
+
 - The long-horizon runtime mapping and the repository guidance follow
   Universal Agents' "access follows the work": workers keep no access of their
   own, each task gets what TeamLead may hand on, TeamLead asks with

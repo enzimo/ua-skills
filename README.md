@@ -134,8 +134,10 @@ This repository is licensed under the MIT License. Copyright (c) 2026 Enzimo.
 
 Use the existing `builtin:x_posting` capability for reviewed specialist X access.
 Keep its X account (the person's own sign-in with `/link cli:x`, else the
-team's account link), attachment, and access to `cli:x` separate; ask for
-missing X access with `request_access`. In every skill, people set up a tool's
+team's account link only while the team shares X), attachment, and access to
+`cli:x` separate; ask for missing X access with `request_access`. Each team
+chooses per service whether its account is shared or private (`/accounts`); a
+private service uses only each person's own account. In every skill, people set up a tool's
 account with `/link <tool id>` (GitHub, Google and X sign-ins included);
 `/auth` keeps only status, the team's sign-in apps (`team_client`) and the
 password managers.

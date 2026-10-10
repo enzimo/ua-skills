@@ -70,15 +70,18 @@ header. Never put a key in a command string.
 ## Credential Handling
 
 In Universal Agents the Brave key is the linked account of `http:brave-search`
-in the credential store: the person's own key first, then the team's.
-Onboarding saves the Brave key typed there as the team's key. The artifact
+in the credential store: the person's own key first, then the team's while
+the team shares Brave Search (the default; `/accounts` shows it). Onboarding
+saves the Brave key typed there as the team's key. The artifact
 tools and brokered requests send no key; the broker adds it. `http:brave-search`
 is part of internet access, so agents need no grant unless someone blocked it.
 
 Do not ask the user to paste Brave API keys into chat, code, or command
 examples. If a Brave tool reports `account_link_missing`, tell the user that a
 team administrator links the team's key with `/link http:brave-search team`,
-or that they can link their own with `/link http:brave-search`; then retry. If
+or that they can link their own with `/link http:brave-search`; when the team
+keeps Brave Search private, only their own key is used, so they link their
+own. Then retry. If
 it reports `access_denied`, someone blocked Brave for this work: use another
 search provider and say so. `BRAVE_SEARCH_API_KEY` is not a Universal Agents
 setting (startup refuses it); the shell examples below are only for running

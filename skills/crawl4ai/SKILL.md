@@ -36,11 +36,15 @@ covers every Crawl4AI tool, so do not ask again for each one.
 The shipped connection declares a credential slot (`credential_injections`):
 the broker sends the Crawl4AI token as `Authorization: Bearer <token>` from the
 stored credential linked to its catalog tool, `mcp:crawl4ai`, using the
-person's own link first, then the team's. The token is never an environment
-variable (`CRAWL4AI_API_TOKEN` is refused at startup). When the broker reports
-`account_link_missing` for `mcp:crawl4ai`, tell the person that a team
-administrator links the team's token with `/link mcp:crawl4ai team` (and
-`/link http:crawl4ai team` for `capture_web_screenshot`), or have
+person's own link first, then the team's while the team shares that tool
+(the default; `/accounts` shows each tool's choice). The token is never an
+environment variable (`CRAWL4AI_API_TOKEN` is refused at startup). When the
+broker reports `account_link_missing` for `mcp:crawl4ai`, tell the person that
+a team administrator links the team's token with `/link mcp:crawl4ai team` (and
+`/link http:crawl4ai team` for `capture_web_screenshot`). `http:crawl4ai` is the
+team's own server, so it takes only the team's token and is always shared. If
+the team keeps `mcp:crawl4ai` private, its team token is not used and each
+person links their own with `/link mcp:crawl4ai`. Or have
 TeamArchitect load `secure-credential-workflows` and call `set_up_tools` for
 `mcp:crawl4ai`, which opens the account link form without asking first. The person
 picks a stored token in the broker's form, or types a new one there to save and
