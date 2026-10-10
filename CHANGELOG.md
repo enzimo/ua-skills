@@ -7,6 +7,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The long-horizon runtime mapping names Universal Agents' Objective action tools,
+  `objective_work_sessions` and `objective_work_profiles`, which replaced the nine
+  work-session and profile functions (`suggest_objective_work_session` and the rest).
+  `propose_objective_work_profile` keeps its name.
+
 - `crawl4ai` and the repository notes name Universal Agents' `mcp_connections`
   tool (`mcp_connections(action="list"|"propose")`), which replaced
   `list_mcp_connections` and `propose_mcp_connection`.
