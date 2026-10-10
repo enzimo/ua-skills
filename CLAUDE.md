@@ -6,7 +6,7 @@ Keep Crawl4AI setup aligned with the Universal Agents MCP model: an installed
 server is the tool `mcp:crawl4ai`, and agents see its tools while they hold
 access to it for the person they work for. A pending server is installed on
 one Inbox card (`propose_access_change` with `mcp_servers`, or
-`propose_mcp_connection` for a new one) or by an administrator in the MCP
+`mcp_connections(action="propose")` for a new one) or by an administrator in the MCP
 controls; full access to `mcp:crawl4ai` covers every Crawl4AI tool. A
 connection whose operator configuration declares credential slots uses the
 stored token linked to `mcp:crawl4ai` (the person's own link first, then the

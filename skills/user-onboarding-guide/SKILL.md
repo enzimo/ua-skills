@@ -177,10 +177,11 @@ When the user says `finish`, `stop`, `end`, `cancel`, `pause the guide`, or
 otherwise ends the tour:
 
 1. Identify the last completed step or topic id.
-2. Call `list_usermem` when available and look for an existing fact tagged
-   `onboarding_guide`.
-3. If one exists, call `replace_usermem` with the updated fact. Otherwise call
-   `create_usermem`.
+2. Call `memory(action="list", bank="usermem")` when available and look for
+   an existing fact tagged `onboarding_guide`.
+3. If one exists, call `memory(action="replace", bank="usermem", memory_id=...)`
+   with the updated fact. Otherwise call
+   `memory(action="create", bank="usermem", fact_text=...)`.
 4. Use fact text like:
    `Onboarding guide progress: completed through step_id; resume at next_step_id.`
 5. Include metadata when supported:

@@ -235,31 +235,31 @@ sequential integration owner.
 
 The runtime may load Objective work-session profiles by default, but availability
 does not time-box any Objective. When an Objective is likely to need multiple
-execution windows, call `suggest_objective_work_session`; the suggestion is
+execution windows, call `objective_work_sessions(action="suggest")`; the suggestion is
 inert and reports the available profile catalog and whether custom proposals
 are enabled. Do not create an ordinary schedule as a substitute for an
 Objective work-session policy.
 
 Use this negotiation sequence:
 
-1. Call `list_objective_work_profiles` and compare the operator profiles and
+1. Call `objective_work_profiles(action="list")` and compare the operator profiles and
    the authenticated user's private installed profiles with the Objective's
    cadence, work duration, checkpoint reserve, model-turn, token, and tool-call
    needs.
 2. If an existing profile fits, summarize its exact bounds and call
-   `enable_objective_work_sessions` only in the authenticated user request that
+   `objective_work_sessions(action="enable")` only in the authenticated user request that
    explicitly accepts those bounds.
 3. If none fits, discuss the bounds first, then call
    `propose_objective_work_profile`. Use `scope="objective"` for a one-time
    profile bound to one active Objective, or `scope="reusable"` for a private
    profile the user can install for future Objectives. A proposal is inert.
 4. Show the proposal's exact profile, scope, expiry, proposal id, and digest.
-   Call `apply_objective_work_profile_proposal` with that same id and digest
+   Call `objective_work_profiles(action="apply")` with that same id and digest
    only after the authenticated user explicitly accepts it. Never treat
    `confirmed=true` as a substitute for the user's actual acceptance.
 5. Applying a one-time proposal enables its target Objective. Applying a
    reusable proposal only installs the owner-scoped profile; select it later
-   with `enable_objective_work_sessions` for each Objective that should use it.
+   with `objective_work_sessions(action="enable")` for each Objective that should use it.
 
 Discuss the complete profile rather than changing one limit in isolation:
 
@@ -283,7 +283,7 @@ material-work tool capacity, and the built-in operator limit allows at most
 five reserved attempts.
 
 Explain the material-work allowance after reserves. When a run reaches a
-`limit_*` boundary, inspect `get_objective_work_status` for the latest input,
+`limit_*` boundary, inspect `objective_work_sessions(action="status")` for the latest input,
 output, total, cache, turn, tool, wall-time, overshoot, evidence-delta, and
 `tuning_signals` data. Treat those signals as observations, not authority.
 Diagnose the binding dimension and context-to-output ratio, then discuss a
@@ -317,7 +317,7 @@ reconcile in-flight effects, and do not recreate the resource or schedule unless
 the user explicitly asks. Agents may recommend a control, but they must not
 impersonate the browser user or an operator to apply one.
 
-Use `export_objective_work_profile_yaml` to render a deterministic schema-v2
+Use `objective_work_profiles(action="export")` to render a deterministic schema-v2
 policy layer for an agreed configured, installed, or Objective-scoped profile.
 Rendering is read-only. Saving requires explicit user confirmation and writes
 only under `control/objective_execution_profiles/`; it does not activate the layer.
