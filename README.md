@@ -179,6 +179,9 @@ inspection: use summaries for discovery and exact IDs for paged source details.
 Task-backlog recovery uses owner-scoped Settings task controls. Queue purge keeps
 current work; `/stop all` cancels it too. Both retain future schedules and history.
 After a control timeout, inspect current task state before retrying cancellation.
+After host sleep, allow the runtime's one-minute heartbeat refresh window before
+diagnosing a stopped worker. A cleared warning does not prove task progress;
+inspect task history and distinguish system maintenance from a person's request.
 Bounded Objective sessions close their Tasks after checkpointing; remaining plan
 work belongs to later sessions. Before telling the owner to approve something in
 the Inbox, confirm that a real access request or staged change is waiting there.

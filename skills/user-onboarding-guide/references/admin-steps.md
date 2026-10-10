@@ -94,3 +94,9 @@ tabs opens a page of **Problems**, **Warnings** and **Notes** about the
 running team, such as a model key that stopped working or a stuck schedule.
 "Nothing needs attention" means all is well. Suggest checking it when
 something seems off.
+
+Treat a model-key credential-store error as a broker or Sealbox problem.
+Direct an administrator to check those services and restore an existing
+tenant's missing or damaged token/key files from a backup. Do not suggest
+provider overload retries, deleting the tenant mapping or generating new
+tenant keys. Keep all credentials out of chat.

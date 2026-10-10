@@ -169,6 +169,9 @@ Keep task-backlog guidance aligned with the per-agent sections in Settings → T
 Select the affected agent before purging its queue. Distinguish queue purge
 from stopping all work, and preserve owner scope, cancellation history and schedules.
 Treat a missing control reply as unconfirmed; inspect current state before retrying.
+Keep stuck-task guidance aligned with the one-minute heartbeat refresh window
+after a monitor pause. Check task history before claiming progress from a cleared
+warning, and distinguish system maintenance from a person's request.
 
 Keep `bw` authentication aligned with the broker's API-key login/unlock form
 and `/auth bitwarden server` command. Never direct a person to enter a broker
