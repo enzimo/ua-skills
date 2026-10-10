@@ -25,6 +25,7 @@ side channels, or authority:
 | Optional solution comparison | Solution-variation tools |
 | Durable wait | Schedules and heartbeat items |
 | Lesson candidate | `AfterActionReport` |
+| Reusable knowledge for later work | Knowledge pages: `knowledge_search` before researching, `knowledge_write` or `knowledge_add_note` after (team changes made for a person are reviewed first) |
 
 Keep plan, objective, digest, and history state local to the manager or agent
 that owns it. Send all inter-agent work through structured transport. Include
