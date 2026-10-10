@@ -2,6 +2,13 @@
 
 ## Apply Runtime Primitives
 
+Objective, work-session and work-profile tools (`fn:objectives`), solution
+variations (`fn:solution_variations`), access workflows and proposals
+(`fn:access_workflows`, `fn:access_proposals`) load on request: call
+`use_tools(tool_ids=[...])` with the groups a step needs before using their
+functions. `activate_plan_execution` and `start_isolated_recovery` are always in
+your tool list, and objective work sessions already have the objectives tools.
+
 Map the OODA operating model to Universal Agents without inventing identifiers,
 side channels, or authority:
 

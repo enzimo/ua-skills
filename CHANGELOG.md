@@ -7,6 +7,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `xurl`, `crawl4ai`, `skill-creator` and the long-horizon runtime mapping say
+  which of TeamLead's tool groups load on request in Universal Agents
+  (objectives, solution variations, access workflows and proposals, MCP and
+  specialists, team skills) and that it loads them
+  with `use_tools(tool_ids=[...])` before calling their functions. Plan
+  execution and recovery stay in its tool list, and objective work sessions
+  already have the objectives tools.
+
 - `xurl`, `hf-cli`, `gog`, `crawl4ai`, `brave-search` and
   `user-onboarding-guide` follow Universal Agents' per-team sharing choice for
   each service that takes both a person's own and the team's account. Shared:
