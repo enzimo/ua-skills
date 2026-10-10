@@ -555,6 +555,13 @@ and pauses a final review that has no recorded reason to wait. Resolve genuine
 dependencies through their normal workflows. Do not resend the original request,
 duplicate a scheduled occurrence, or delete database rows to bypass the wait.
 
+For a stuck-task notice after host sleep, allow the runtime's one-minute
+heartbeat refresh window (`event=liveness_monitor_paused`). Inspect task history
+and current state before reporting progress: a cleared warning establishes only
+that its reported condition ended. Distinguish automatic system maintenance,
+which works for no person and tells administrators, from a person's request.
+Do not resend work or start a replacement merely because of a historical notice.
+
 
 ### Correct review steps
 
