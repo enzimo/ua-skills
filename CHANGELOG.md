@@ -7,6 +7,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `crawl4ai` and the repository notes name Universal Agents' `mcp_connections`
+  tool (`mcp_connections(action="list"|"propose")`), which replaced
+  `list_mcp_connections` and `propose_mcp_connection`.
+
 - `user-onboarding-guide` saves its progress with Universal Agents' `memory`
   tool (`memory(action="list"|"replace"|"create", bank="usermem")`), which
   replaced `list_usermem`, `replace_usermem` and `create_usermem`.

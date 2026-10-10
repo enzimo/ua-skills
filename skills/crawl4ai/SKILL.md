@@ -16,7 +16,7 @@ There is no project-native crawl tool; the one Crawl4AI tool outside MCP is
 through the broker as the web API tool `http:crawl4ai`. Do not use shell,
 curl, Python HTTP clients, or a loopback URL to bypass the MCP server. The prefixed tools appear while the agent holds access to
 `mcp:crawl4ai` for the person it works for. If they are absent, check
-`list_mcp_connections` (TeamLead loads it with
+`mcp_connections(action="list")` (TeamLead loads it with
 `use_tools(tool_ids=['fn:capabilities'])`) and `find_tools`, and report whether Crawl4AI is not
 installed, not authorized for this person's work, or not loading: their
 `load_status` says when the server is not answering (and when it is tried
@@ -24,7 +24,7 @@ again, or that administrators were told) or why the broker refused. Do not ask
 for a restart; tools appear on the next step once installed and authorized.
 
 For the shipped connection, inspect
-`list_mcp_connections`. When the user requests setup and the connection is
+`mcp_connections(action="list")`. When the user requests setup and the connection is
 pending, TeamArchitect calls `propose_access_change` with
 `mcp_servers=[{"connection_id": ..., "record_digest": ...}]` from that listing
 and a short reason. An administrator installs it on one Inbox card that also
