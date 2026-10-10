@@ -339,7 +339,8 @@ Before terminal delivery:
 - State deliverables, evidence, checks, limitations, residual risks, and
   required human or operator actions.
 - Conduct an after-action review for material work and convert durable lessons
-  into a test, document, procedure, guard, template, or tracked objective.
+  into a test, document, procedure, guard, template, knowledge page, or tracked
+  objective.
 
 Do not claim completion because all planned activities ran. Claim it only when
 the outcome and required evidence satisfy the current goal contract.
