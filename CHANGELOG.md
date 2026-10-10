@@ -7,6 +7,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `user-onboarding-guide` saves its progress with Universal Agents' `memory`
+  tool (`memory(action="list"|"replace"|"create", bank="usermem")`), which
+  replaced `list_usermem`, `replace_usermem` and `create_usermem`.
+
 - `xurl`, `crawl4ai`, `skill-creator` and the long-horizon runtime mapping say
   which of TeamLead's tool groups load on request in Universal Agents
   (objectives, solution variations, access workflows and proposals, MCP and
