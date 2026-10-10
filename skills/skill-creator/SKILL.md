@@ -113,7 +113,9 @@ In Universal Agents, installed team skills are read-only to every agent. Create
 or edit a skill as a draft folder in the task's own folders (run this skill's
 scripts as `"${SKILLS_DIR}/skill-creator/scripts/init_skill.py" <name> --path
 <task folder>`; to change an installed skill, copy it there first). TeamArchitect
-then proposes the draft with `plan_team_skill_change`, and the person reviews
+then proposes the draft with `plan_team_skill_change` (after
+`use_tools(tool_ids=['fn:team_skill_plans'])`, since team skill tools load on
+request), and the person reviews
 every skill change before it is installed. Packaging (Step 5) is only needed
 when sharing the skill outside the team.
 

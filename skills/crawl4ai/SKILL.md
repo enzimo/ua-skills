@@ -16,7 +16,8 @@ There is no project-native crawl tool; the one Crawl4AI tool outside MCP is
 through the broker as the web API tool `http:crawl4ai`. Do not use shell,
 curl, Python HTTP clients, or a loopback URL to bypass the MCP server. The prefixed tools appear while the agent holds access to
 `mcp:crawl4ai` for the person it works for. If they are absent, check
-`list_mcp_connections` and `find_tools`, and report whether Crawl4AI is not
+`list_mcp_connections` (TeamLead loads it with
+`use_tools(tool_ids=['fn:capabilities'])`) and `find_tools`, and report whether Crawl4AI is not
 installed, not authorized for this person's work, or not loading: their
 `load_status` says when the server is not answering (and when it is tried
 again, or that administrators were told) or why the broker refused. Do not ask

@@ -27,7 +27,8 @@ environment variables. Apart from the sign-in command, do not ask the user to
 type slash commands. If the catalog lacks `cli:x`, report the runtime version
 gap; do not invent a registration request.
 
-For a setup-and-post goal, publish a complete `submit_access_workflow` plan before
+For a setup-and-post goal (TeamLead loads access workflows first with
+`use_tools(tool_ids=['fn:access_workflows'])`), publish a complete `submit_access_workflow` plan before
 asking for anything. Include the X account (the person's own sign-in, or, only while the team
 shares X, an `account` step for the team's account link), account verification (`tool_access` `cli:x` at `read`), the exact post review and
 publication (`cli:x` at `write`), and a check of its returned URL. Follow the workflow section of `runtime-operations-workflows`. Ask
