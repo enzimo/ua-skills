@@ -5,6 +5,16 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Personal-details checks now come from the shared project template:
+  `scripts/check_personal_details.py` also checks commit identities, commit
+  messages and every line in history; Git hooks in `.githooks/` run it before
+  commits and pushes; the **Personal details** workflow runs it in CI. The rules
+  moved from `README.md` to `CONTRIBUTING.md`, and
+  `docs/personal-details-cleanup.md` covers what to do when a detail was already
+  pushed.
+
 ## [0.2.0] - 2026-10-15
 
 The repository was recreated without its earlier history. The `0.1.0` tag and
