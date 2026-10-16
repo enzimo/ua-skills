@@ -54,6 +54,9 @@ progress definitions, objective health, and adaptive recovery. Keep its
 normative requirements synchronized with
 `../ua-architecture/docs/SOP-OODA-Loop.md`; allow skill-only operational
 refinements only when they preserve that SOP's meaning.
+Keep it identical to the copy Universal Agents ships in
+`custom_agents/skill_templates/long-horizon-plan-execution`, and name only
+tools, commands and records that exist in current Universal Agents code.
 Keep material replanning under the designated Plan owner, higher-order agent,
 or human rather than allowing Task-local optimization to redefine the parent
 outcome.

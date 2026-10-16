@@ -5,6 +5,19 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- `long-horizon-plan-execution` no longer tells the team lead to use research
+  runs, a plan tree, a work ledger or a limit on parallel Objective work. Those
+  tools never shipped in Universal Agents, so the instructions named tools the
+  team lead does not have. The skill now matches the copy Universal Agents
+  ships, and its runtime mapping was checked against current code:
+  `authorize_scheduled_job_access` gives access to the schedule itself; during
+  a scheduled job's run a person decides each access request; `request_access`
+  takes a tool and a level but no operation; workflow steps are reported with
+  `update_access_workflow`; and the team lead reaches the team's Objectives and
+  those of the person it works for.
+
 ## [0.2.0] - 2026-10-15
 
 The repository was recreated without its earlier history. The `0.1.0` tag and
