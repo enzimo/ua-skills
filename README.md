@@ -134,33 +134,11 @@ creating a duplicate.
 ## 🔒 Personal Details
 
 This repository is public, and every tracked file ships in the release archives
-and in every Universal Agents instance that clones the catalog. Git history keeps
-old versions of every file, so removing a personal detail later means rewriting
-history. Keep these out of skills, references, tests, examples and commit
-metadata:
-
-- Real names, nicknames, handles, email addresses, phone numbers and chat or
-  account IDs of maintainers, users or their assistants, including the names
-  people give their own assistant, bot, team, instance or company.
-- Real domain names, server addresses, machine names, runner names, host
-  accounts, hardware details and host folder paths from anyone's own setup.
-- Real IDs from a running instance (schedule, task, run or message IDs) and
-  copied chat messages, emails, reports or logs from a person's real work.
-
-Use made-up placeholders instead: `exampleuser`, `example-owner`, `alice`,
-`bob`, `jordan`, the assistant name `Nova`, the company `Acme`; domains under
-`example.com`, `example.net` or `.test`; phone numbers in the `+1555` range;
-Telegram and Discord IDs such as `123456789` or `100200300`. Turn a real
-incident into a summary or a made-up equivalent. Commit with a GitHub noreply
-address (`<id>+<login>@users.noreply.github.com`) and turn on GitHub's "Keep my
-email addresses private" and "Block command line pushes that expose my email"
-settings. Organization and repository names in real addresses and the license
-holder are public by design and may stay.
-
-`tests/test_no_personal_details.py` fails when a tracked file contains an email
-address outside the reserved example domains, a phone number outside the
-fictional 555 ranges, or a home folder path with a real account name. It cannot
-recognize names, handles or copied chats, so those still depend on review.
+and in every Universal Agents instance that clones the catalog. Read
+[`CONTRIBUTING.md`](CONTRIBUTING.md) ("Personal details") before contributing:
+it lists what stays out of skills, references, tests, examples and commit
+metadata, which made-up placeholders to use, and the checks that enforce it.
+The allowlist covers reviewed GitHub noreply identities for commits and web merges.
 
 ---
 
