@@ -233,3 +233,8 @@ and preserves current work. /stop continues to inspect the TeamLead task trees.
 Access-denial guidance distinguishes missing permission from an access check
 that could not run. Follow the returned repair step for service failures;
 request permission only for a confirmed lack of access.
+
+Objective-linked heartbeat items follow their Objective's ownership. Shared
+heartbeats keep the launcher's person; use a person-owned schedule for private
+recurring Objectives. Applying a saved work profile requires current authority,
+and creating an Objective must preserve existing Plan ownership.

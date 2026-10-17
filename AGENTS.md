@@ -179,3 +179,8 @@ pending until the broker confirms completion.
 Keep access-denial guidance tied to the returned reason and next step. If an
 access check could not run, report the operator repair step and wait for
 restoration before checking again. Requesting permission cannot repair a service.
+
+Keep Objective-linked heartbeat guidance tied to the launcher's person.
+Use person-owned schedules for private recurring Objectives, recheck current
+authority when applying saved profiles, and preserve existing Plan ownership
+when creating an Objective from a task.
