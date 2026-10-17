@@ -27,6 +27,16 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `xurl` tells the agent to call `request_access` with the `tool_id` (normally
   `cli:x`) and `level` a refusal names, without an operation: access is to a
   whole tool at a level.
+- `long-horizon-plan-execution` describes how Objective status changes now
+  behave in Universal Agents: `objectives(action="update_status")` applies the
+  same change as the person's Runtime Controls, so pausing or closing an
+  Objective also pauses its bounded work sessions and resuming turns back on
+  only what a control paused, while system-managed schedules stay as they are
+  and are named in `lifecycle_warnings`; the tool refuses `deleting` and
+  `deleted`, which come only from the person's own deletion; each status offers
+  only some Runtime Controls, and repeating the control that set the current
+  status retries what did not finish; and a task that ends while its Objective
+  is paused or being deleted leaves it that way.
 
 ## [0.2.0] - 2026-10-15
 
