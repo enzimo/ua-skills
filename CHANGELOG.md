@@ -17,6 +17,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   takes a tool and a level but no operation; workflow steps are reported with
   `update_access_workflow`; and the team lead reaches the team's Objectives and
   those of the person it works for.
+- `xurl` tells the agent to call `request_access` with the `tool_id` (normally
+  `cli:x`) and `level` a refusal names, without an operation: access is to a
+  whole tool at a level.
 
 ## [0.2.0] - 2026-10-15
 
