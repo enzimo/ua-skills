@@ -14,6 +14,19 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   moved from `README.md` to `CONTRIBUTING.md`, and
   `docs/personal-details-cleanup.md` covers what to do when a detail was already
   pushed.
+- `long-horizon-plan-execution` no longer tells the team lead to use research
+  runs, a plan tree, a work ledger or a limit on parallel Objective work. Those
+  tools never shipped in Universal Agents, so the instructions named tools the
+  team lead does not have. The skill now matches the copy Universal Agents
+  ships, and its runtime mapping was checked against current code:
+  `authorize_scheduled_job_access` gives access to the schedule itself; during
+  a scheduled job's run a person decides each access request; `request_access`
+  takes a tool and a level but no operation; workflow steps are reported with
+  `update_access_workflow`; and the team lead reaches the team's Objectives and
+  those of the person it works for.
+- `xurl` tells the agent to call `request_access` with the `tool_id` (normally
+  `cli:x`) and `level` a refusal names, without an operation: access is to a
+  whole tool at a level.
 
 ## [0.2.0] - 2026-10-15
 

@@ -122,7 +122,7 @@ creating a duplicate.
   grant, lease, consumed, and revoke as internal terms unless the user asks for
   technical details.
 - **Universal Agents Shell Handling:** Command-oriented skills must direct agents to the runtime `shell-execution-workflows` skill. Domain instructions should add only relevant command flags and policy caveats, leaving RTK selection, non-interactive execution, timeouts, working directories, result interpretation, credentialed CLI blocking, and loopback blocking to the shared runtime contract.
-- **OODA Governance Sync:** Keep normative requirements in `long-horizon-plan-execution` synchronized with `ua-architecture/docs/SOP-OODA-Loop.md`, including actionability by Plan branch, progress definitions at each planning level, and higher-order or human control of material replanning. Allow faster skill-only refinement of examples, templates, routing instructions, and operational heuristics only when it does not weaken or redefine the canonical SOP.
+- **OODA Governance Sync:** Keep normative requirements in `long-horizon-plan-execution` synchronized with `ua-architecture/docs/SOP-OODA-Loop.md`, including actionability by Plan branch, progress definitions at each planning level, and higher-order or human control of material replanning. Allow faster skill-only refinement of examples, templates, routing instructions, and operational heuristics only when it does not weaken or redefine the canonical SOP. Keep the skill identical to the copy Universal Agents ships in `custom_agents/skill_templates/long-horizon-plan-execution`, and name only tools, commands and records that exist in current Universal Agents code.
 - **Objective Work Sessions:** Keep the skill's Universal Agents runtime mapping aligned with opt-in activation, built-in and private profile selection, exact custom-profile acceptance, safe-yield, and checkpoint behavior without treating the skill as authority.
 - **Evaluated Alternatives:** Keep bounded solution variation discretionary, advisory, and separate from workspace isolation, effect authorization, integration, and final verification.
 - **Durable Lessons:** Keep the long-horizon runtime mapping aligned with knowledge search, pages and notes. Preserve review of team contributions made for a person.
@@ -210,3 +210,8 @@ and preserves current work. /stop continues to inspect the TeamLead task trees.
 Access-denial guidance distinguishes missing permission from an access check
 that could not run. Follow the returned repair step for service failures;
 request permission only for a confirmed lack of access.
+
+Objective-linked heartbeat items follow their Objective's ownership. Shared
+heartbeats keep the launcher's person; use a person-owned schedule for private
+recurring Objectives. Applying a saved work profile requires current authority,
+and creating an Objective must preserve existing Plan ownership.

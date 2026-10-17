@@ -16,7 +16,6 @@ side channels, or authority:
 | --- | --- |
 | Team lead | `TeamArchitect` |
 | Bounded execution | Structured `Task` |
-| Isolated long research | Durable `ResearchRun` |
 | Human decision | `TaskQuery` through the manager |
 | Durable outcome | Manager-owned `ObjectiveRecord` |
 | Living strategy | Manager-owned `PlanRecord` |
@@ -59,128 +58,35 @@ A published access workflow belongs to its source Task and is a view over its
 access requests. Staging its changes or closing the local execution plan does
 not finish that workflow. Follow `runtime-operations-workflows`, and read every
 request's current status with `get_access_workflow` when the same task resumes.
-Approval permits only the exact change; it does not prove execution. Complete steps after verifying
-their results, or record a concrete failure and recovery action. If an older
-source task has already ended, inspect its workflow from the follow-up task and,
-when the user requests continuation, plan only the remaining work. Keep completed
-results and check uncertain external effects before another attempt.
+Approval permits only the exact change; it does not prove execution. Report
+each step with `update_access_workflow`: mark it running before asking for what
+it needs, complete only after verifying its results, or failed with a concrete
+recovery action. If an older source task has already ended, read its workflow
+from the follow-up task (only the source task can update it) and, when the user
+requests continuation, plan only the remaining work. Keep completed results and
+check uncertain external effects before another attempt.
 
-Use the `review_url` returned by workflow submission or inspection for live
-progress links. Never use a skill documentation address as the workflow link.
-Ask for independent staged changes together with
+Each workflow step names the kinds of change (`change_kinds`) and the tools
+with a level (`tool_access`) it needs; requests made while it runs are shown on
+it. Correct a step that names the wrong kind or tool with
+`revise_access_workflow_step` before any request is linked to it, keeping the
+workflow and finished work. A request no running step expects is still decided
+in the Inbox and listed as not on a step.
+
+With authorization on, ask for independent staged changes together with
 `request_access_workflow_approvals` (one pause for all of them), then apply each
 approved change with `apply_change`, and check every outcome before reporting.
 When the lead itself lacks a tool a worker needs, it calls `request_access` with
 `hand_on=true`; the worker's task then gets it from the lead's access when it
-needs it (access follows the work: workers keep no access of their own). Never ask again for anything a
-person denied: the denial closes its workflow step.
+needs it (access follows the work: workers keep no access of their own). Never
+ask again for anything a person denied: the denial closes its workflow step.
 
-## Use Hierarchical Objective Plans and the Work Ledger
-
-For an Objective, treat the current `PlanHierarchySnapshotV1` as the
-authoritative living strategy. Its `PlanHorizonRecordV1` entries separate the
-committed near-term horizon from forecast horizons. Its nested
-`PlanNodeRecordV1` entries represent subplans, milestones, discovery, delivery,
-and verification branches. Use `PlanRevisionRecordV1` to record why strategy
-changed and the next committed planning action.
-
-Activate this skill before `create_objective`,
-`update_objective_plan_hierarchy`, or `enqueue_objective_work_item`. Objective
-creation persists a partial two-horizon Plan. Later horizons may remain
-forecast, but material work requires an accepted or provisional goal contract,
-a committed horizon, an actionable or bounded discovery node, evidence and
-progress definitions, stop and replan triggers, review cadences, and the
-activated skill's content digest.
-
-Use `get_objective_plan_hierarchy` to inspect the current Plan revision and
-ledger. Use `update_objective_plan_hierarchy` for one compare-and-set revision.
-Do not fabricate owner, Objective, Plan, revision, or skill-digest fields; the
-runtime derives them from current trusted state and the current activation.
-
-Manager custody does not grant access to other users' Objectives or Plans.
-Planning tools act for the canonical user bound to the active Task, including
-trusted periodic and result-review Tasks. If that identity is missing or the
-Objective belongs to another user or team, do not retry with invented owner,
-task, Plan, or manager identifiers.
-
-Standalone Plans retain the canonical owner of their trusted root Task. A task
-identifier also does not authorize reading its digest or promoting it to an
-Objective. On an Objective/Plan version conflict, reload current canonical state
-and reconsider the intended update; do not force an older whole record over it.
-Persistence and recovery errors are failures, not confirmation that a milestone
-or result was saved. Preserve useful evidence and report the failed operation.
-
-The Plan tree is not an execution queue. Put intended bounded work in
-`ObjectiveWorkItemRecordV1` through `enqueue_objective_work_item`. The ledger
-may contain more work than current runtime capacity. Preserve semantic
-idempotency keys, dependencies, horizon order, stable queue rank, readiness,
-and source Plan revision. A work item may represent research, a specialist
-Task, an execution-control job or run, a managed service, a schedule, a durable
-wait, Plan review, result integration, or cancellation.
-
-Requested placement is intent, not authority. A worker or model cannot exempt
-itself from local accounting by naming a remote placement. Trusted admission
-assigns the execution class and opaque runtime reference. Objective-local work
-holds one of two default slots from admission until a fenced terminal result,
-cancellation acknowledgement, or lease expiry. Keep additional ready work in
-the ledger. Remote runtimes, execution control, external services, and passive
-waits enforce their own capacity and do not consume Objective-local slots. A
-remote-eligible item consumes a local slot when it falls back to local work.
-
-Do not widen the two-slot local limit informally. TeamArchitect may stage an
-inert `propose_objective_parallelism` record only after identifying independent
-streams, cost/time impact, and shared-resource risk. Tell the authenticated
-Objective owner to use `/accept objective-parallelism <objective_id>
-<proposal_id> <proposal_digest>`. Conversational confirmation is not authority.
-The accepted cap automatically returns to two at the next Plan revision, which
-requires a fresh proposal for any later increase.
-
-Promote long evidence work with `create_research_run`. Objective-linked
-research must use a Research work item that has passed Objective admission;
-never supply only an Objective id. Copy only the bounded
-question, current Objective/Plan slice, accepted evidence and procedures,
-budgets, and stop conditions into the immutable
-ResearchRun context. The isolated worker gets a fresh Strands instance and no
-origin conversation or shared-memory channel. It returns a structured terminal
-capsule to TeamArchitect first. TeamArchitect validates provenance and fences,
-then decides whether the evidence changes the Plan, completes a node, cancels
-or replaces other ResearchRuns, or makes new work ready. Research, ordinary
-Tasks, execution-control work, managed services, schedules, and durable waits
-may coexist in the ledger; their placement and authority boundaries remain
-distinct.
-
-The run's worker starts with its role's standard tools, and its tool list
-follows the access its task has for the person the Objective works for: the
-task gets the tools the question needs from what the lead may hand on, when it
-first needs them. If the worker asks with `request_access`, treat the wait as a
-checkpoint: the task pauses until a person decides, and a grant is usable on
-the worker's next step without a restart. An Objective-linked
-wait releases its local slot and must reacquire it before resuming. New web
-API tools, data folders, account links and MCP servers stay on their reviewed
-paths (`propose_access_change`, MCP installation); a worker request never
-grants them.
-
-Worker terminal results enter the Objective integration queue. TeamArchitect
-reviews the result and current Plan revision before integration, replanning,
-cancellation, replacement work, milestone notification, or presentation to the
-originating user thread. Workers never write the originating conversation or
-mutate the Plan directly. The runtime queues a durable `research_presentation`
-Task for this review; if admission is full, the terminal event remains pending
-instead of being marked delivered.
-
-One Research work item binds one ResearchRun. Retrying creation for that item
-does not request a second parallel run. Put a genuinely separate question or
-periodic occurrence in a new work item. Artifact inspection is limited to the
-active Task or ResearchRun directory; carry accepted evidence through the
-context manifest instead of reading another run's raw filesystem paths.
-
-Resuming after an access wait preserves the previous terminal capsule as a disk-backed
-continuation reference. Review and reuse its partial findings without treating
-them as verified merely because they survived a restart. Exhausted attempts
-and queued cancellation produce coordinator observations for TeamArchitect
-review, not fabricated worker results. The review Task and terminal receipt
-commit together; duplicate transport delivery is not a reason to create a
-second review or send a second user answer.
+Link the `review_url` the workflow tools return (`/workflows/<id>`) for live
+progress. Never use a documentation address as the workflow link. Built-in
+procedural guidance is served at
+`/docs/skills/runtime-operations-workflows?source=bundled` on the trusted
+internal website base URL; link other documentation pages only when a
+documentation listing confirms them, never by guessing from a skill name.
 
 ## Select Task, Plan, or Objective
 
@@ -214,6 +120,23 @@ Treat these lifecycles independently after promotion:
 Supply semantic titles, objectives, rationale, evidence needs, and recovery
 intent. Leave runtime-owned task, plan, step, conversation, correlation, and
 routing identifiers to the runtime.
+
+Keep Objective-linked heartbeat work under the heartbeat launcher's person.
+Use a schedule owned by the Objective's person for private recurring work;
+the shared heartbeat skips an Objective its launcher cannot change. Treat
+linked heartbeat items as part of that Objective's ownership when reading or
+changing them. Recheck current authority before applying a saved work-profile
+proposal, and never use task promotion to take over an existing team Plan.
+Use `creation_mode="spawn_task"` for separate Objective work when the source
+task already shares an Objective's Plan.
+
+The Objective tools reach two kinds of Objectives: the team's (they have no
+owner) and those of the person the current task works for, never another
+person's. Every task reads the team's Objectives; only work for no person or
+for an administrator changes them. Name another task (`task_id`,
+`source_task_id`) only when it works for the same person. An Objective, Plan,
+or task outside this view gives the same reply as a missing one; do not retry
+with invented owner, task, Plan, or Objective identifiers.
 
 ## Use solution variation only when it helps
 
@@ -406,7 +329,9 @@ response as proof of progress.
 Use runtime retry and delivery recovery before model-level repetition. Record a
 recovery-aware plan action when leaving the happy path. Start isolated recovery
 with a compact failure snapshot when context contamination or pressure makes
-inline recovery unhealthy.
+inline recovery unhealthy. Treat a save or recovery error as a failure, not as
+confirmation that a milestone or result was recorded; keep useful evidence and
+report the failed operation.
 
 Do not forge manager-control messages, manipulate hidden identifiers, or use
 shared persisted state as an inter-agent communication channel.
@@ -418,19 +343,22 @@ authority. Let the access service's decisions and mandatory local guards
 control protected actions. Keep access, invocation, schedule, settings,
 credentials, provisioning, and skill lifecycle authorities distinct.
 
-Read the `reason` and `next_step` of an `access_denied` result first. If the
-access check could not run, report the blocker and follow the returned operator
-repair step; a new permission request cannot restore the service. Resume
-dependent work only after the service is restored and access is checked again.
-For a confirmed lack of permission, ask with `request_access` using the
-`tool_id`, `operation`, and `level` the refusal names. Resume from the returned
+Read the `reason` and `next_step` of an `access_denied` result first. If a
+block stops the call, asking cannot help; tell the person you work for. If the
+access check could not run (`reason_code` `access_decision_failed`, or a reason
+that says so), report the blocker and follow any operator step the result
+names; a new permission request cannot repair the check. Resume dependent work
+only after the check works again. For a confirmed lack of permission, ask with
+`request_access` using the `tool_id` (or folder) and `level` the refusal names;
+access is to a whole tool, never to one operation. Resume from the returned
 decision without widening it.
 
-When a worker asks with `request_access`, the runtime hands the access down at
-once if TeamArchitect holds it and may hand it on without asking. Otherwise the
-worker's task waits for a person in the Inbox and resumes with the decision.
-Keep the parent waiting for its child result and record the access dependency;
-do not restart the task as a new assignment.
+When a worker asks with `request_access` outside a scheduled job's run, the
+runtime hands the access down at once if TeamArchitect holds it and may hand it
+on without asking. Otherwise the worker's task waits for a person in the Inbox
+and resumes with the decision; a grant is usable on the worker's next model
+call, without a restart. Keep the parent waiting for its child result and
+record the access dependency; do not restart the task as a new assignment.
 
 An agent may recur in the task hierarchy: TeamArchitect can delegate a job whose
 specialist needs a protected setup step from TeamArchitect. Keep that lineage
@@ -464,12 +392,6 @@ does not infer semantic health, choose abandonment, or coordinate distributed
 specialist budgets. Do not claim that a prompt, status signal, or skill
 activation automatically enforces the complete SOP.
 
-Transactional snapshot handoff and passing contention tests do not establish
-production readiness for unrestricted parallel workers. The runtime still needs
-single-writer manager commands, snapshot-writer incarnation fencing, atomic
-Objective-to-Research admission, enforced workspace isolation, and long-term
-storage policy. Keep concurrency within the operator-enabled, verified scope.
-
 ## Recurring specialist work
 
 For an ordinary user-owned scheduled root task, select the named worker type and
@@ -485,7 +407,8 @@ or off. Confirm the result's `saved_requirements` and `summary` show the change.
 
 Use `prepare_scheduled_job_access` to check requirements and
 `authorize_scheduled_job_access(schedule_id, expected_revision)` to give the
-worker type what TeamLead may hand on; the rest is listed for a person to give.
+schedule itself what TeamLead may hand on (every agent in its runs uses it, and
+only there); its `ask_a_person` list names what a person must give.
 `prepare_scheduled_job_access` reports under `missing_access` the tools the worker
 type or the schedule's owner does not hold yet. Recheck readiness before
 activating the draft. Changes to schedules the runtime manages return
@@ -504,13 +427,16 @@ copy of a scheduled payload to NATS.
 
 For a scheduled job's `access_denied` result, apply the checks in
 **Preserve Authorization** first. If permission is missing, the worker calls
-`request_access` with the `tool_id` and `level` it names. A person decides in
-the Inbox while the run waits ("Keep" gives it to the job); give the job what
-every run needs beforehand with `authorize_scheduled_job_access`. Ask with the default `lifetime="until_revoked"` for access
-every run needs; `task` or `one_time` access ends with the run. For a tool the
-catalog lacks or missing credentials, use `manager_escalation` with the schedule
-and the tool ID. Wait through the existing task workflow and verify the actual
-operation after repair. Never treat a review message as access.
+`request_access` with the `tool_id` and `level` it names. TeamLead does not hand
+access down during a scheduled job's run: a person decides in the Inbox while
+the run waits, and "Keep for later tasks" gives it to the schedule. Give the
+schedule what every run needs beforehand with `authorize_scheduled_job_access`.
+Ask with the default `lifetime="until_revoked"` for access every run needs;
+`task` or `one_time` access ends with the run. For a tool the catalog lacks or
+a missing sign-in or account, the worker uses `manager_escalation` naming the
+schedule and the tool ID; then use `propose_access_change` or `set_up_tools`.
+Wait through the existing task workflow and verify the actual operation after
+repair. Never treat a review message as access.
 
 Change shared rules through `agent.schedule_workers.defaults.<rule>` for the
 team or `agent.schedule_worker_rules.<rule>` with agent-type scope. As TeamLead,
@@ -570,34 +496,17 @@ that its reported condition ended. Distinguish automatic system maintenance,
 which works for no person and tells administrators, from a person's request.
 Do not resend work or start a replacement merely because of a historical notice.
 
-
-### Correct review steps
-
-Each workflow step names the kinds of change (`change_kinds`) and the tools with a
-level (`tool_access`) it needs; requests made while it runs are shown on it. Correct
-a step that names the wrong kind or tool with `revise_access_workflow_step` before
-any request is linked to it, keeping the workflow and finished work. A request no
-running step expects is still decided in the Inbox and listed as not on a step. For
-an already-ended source task, follow the remaining-work recovery procedure rather
-than impersonating that task.
-
-Link the tool-returned workflow `review_url`. Never infer a published documentation
-URL from a runtime skill name; use only pages confirmed by a documentation listing.
-
 Recurring timer runs may share conversation history without being follow-up
-requests. A successful no-change check may complete quietly; explicit follow-ups
-and delegated subtasks must still return results. Diagnose suppression refusals
-using the runtime's task, conversation, schedule and follow-up IDs.
-Built-in procedural guidance is served at
-`/docs/skills/runtime-operations-workflows?source=bundled`. Use the trusted internal
-website base URL. A saved workflow's progress uses its returned `/workflows/<id>`
-URL, never the documentation URL.
+requests. A successful no-change check may finish quietly
+(`suppress_outbound_dispatch=true` on its `task_response`); explicit follow-ups
+and delegated subtasks must still return results. When a quiet finish is not
+allowed, the runtime sends the reply normally and records why, with the task,
+conversation, schedule and follow-up IDs.
 
 The Inbox lists access requests waiting for a person and notices that need no
 decision. Do not ask again while a request waits; respect decided outcomes and
 check `list_my_access` for current access. Scheduled and recovery requests may
 have no chat conversation; they resume the waiting task when a person decides.
-
 
 For abandoned expired review claims, preview the offline upgrade with
 `--retire-expired-review-claims`. Apply only after stopping all team runtimes,

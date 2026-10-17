@@ -43,6 +43,9 @@ progress definitions, objective health, and adaptive recovery. Keep its
 normative requirements synchronized with
 `../ua-architecture/docs/SOP-OODA-Loop.md`; allow skill-only operational
 refinements only when they preserve that SOP's meaning.
+Keep it identical to the copy Universal Agents ships in
+`custom_agents/skill_templates/long-horizon-plan-execution`, and name only
+tools, commands and records that exist in current Universal Agents code.
 Keep material replanning under the designated Plan owner, higher-order agent,
 or human rather than allowing Task-local optimization to redefine the parent
 outcome.
@@ -176,3 +179,8 @@ pending until the broker confirms completion.
 Keep access-denial guidance tied to the returned reason and next step. If an
 access check could not run, report the operator repair step and wait for
 restoration before checking again. Requesting permission cannot repair a service.
+
+Keep Objective-linked heartbeat guidance tied to the launcher's person.
+Use person-owned schedules for private recurring Objectives, recheck current
+authority when applying saved profiles, and preserve existing Plan ownership
+when creating an Objective from a task.
