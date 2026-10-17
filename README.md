@@ -138,6 +138,7 @@ and in every Universal Agents instance that clones the catalog. Read
 [`CONTRIBUTING.md`](CONTRIBUTING.md) ("Personal details") before contributing:
 it lists what stays out of skills, references, tests, examples and commit
 metadata, which made-up placeholders to use, and the checks that enforce it.
+The allowlist covers reviewed GitHub noreply identities for commits and web merges.
 
 ---
 

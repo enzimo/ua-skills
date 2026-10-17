@@ -104,6 +104,7 @@ workflows; do not blur that converter boundary with a silent fallback.
   - Create `scripts/`, `references/`, and `assets/` only when they have a concrete execution role. Request them explicitly from the initializer and load references only when the current path needs them.
 
 - **Process Rules:**
+  - **Reviewed Commit Identities:** Preserve exact reviewed name/email pairs for commit and web-merge identities in `.personal-details-allowlist`.
   - **No Fixes Without Root Cause First:** Never apply symptom-focused patches. Trace data flow to the original trigger and write reproducing test cases.
   - **Behavioral Skill Verification:** Treat `quick_validate.py` as a structural gate only. Compare observable task outcomes for substantial skill revisions and prefer evidence from real successful and failed trajectories over generic advice.
   - **Documentation Sync:** Always update `README.md`, `CLAUDE.md`, and `AGENTS.md` after making changes to the project to reflect the latest state.

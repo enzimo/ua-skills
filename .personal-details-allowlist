@@ -16,6 +16,7 @@
 #   /home/<name>. Common placeholders (alice, bob, me, exampleuser, YOUR_USER)
 #   are already allowed.
 #
-# Replace the identity below if this project is maintained by another account.
+# List the reviewed identities used to maintain this project.
 
 identity: enzimo00 <291572429+enzimo00@users.noreply.github.com>
+identity: achaiah <3967183+achaiah@users.noreply.github.com>

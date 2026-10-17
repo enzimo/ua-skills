@@ -13,7 +13,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   commits and pushes; the **Personal details** workflow runs it in CI. The rules
   moved from `README.md` to `CONTRIBUTING.md`, and
   `docs/personal-details-cleanup.md` covers what to do when a detail was already
-  pushed.
+  pushed. The allowlist includes the reviewed GitHub web-merge author identity.
 - `long-horizon-plan-execution` no longer tells the team lead to use research
   runs, a plan tree, a work ledger or a limit on parallel Objective work. Those
   tools never shipped in Universal Agents, so the instructions named tools the
