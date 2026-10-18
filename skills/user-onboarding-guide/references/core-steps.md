@@ -148,8 +148,10 @@ person can ask "What do you remember about me?" or say "Forget that".
 - Team memories are shared with everyone on the team; only administrators
   change them.
 - Point to **Knowledge** for longer how-tos, decisions and lessons in the
-  team's pages or the person's own space. To bring back an archived page,
-  choose **Archived pages**, open it, then select **Restore**.
+  team's pages or the person's own space. Explain that each space opens an
+  editable **Home** article with links to topic pages. Use **All pages** for
+  search and the paginated directory. To bring back an archived page, open
+  **All pages**, choose **Archived pages**, open it, then select **Restore**.
 - Explain that **My proposals** holds team changes agents suggested from the
   person's work, which the person can publish or withdraw. A number on **My
   proposals**, on the **Knowledge** link and on the ⚙ Settings button shows how
