@@ -39,7 +39,8 @@ a core tour, then a menu of deeper topics, fitted to the chat app (the `Channel:
 the person is an administrator (the runtime's `Person you work for:` line). Keep the Web Chat labels and
 the commands in its `references/` aligned with the Universal Agents Web Chat and `/help`, and show
 administrator topics only to administrators.
-Keep the Knowledge tour's **Archived pages → Restore** instructions current.
+Keep the Knowledge tour aligned with editable **Home** articles and the
+paginated **All pages** directory. Keep **All pages → Archived pages → Restore** current.
 Describe archive proposals as preserving the current page's text and details,
 with no **Edit, then publish** action.
 The catalog includes `single-page-site` for generated articles, comparisons,
