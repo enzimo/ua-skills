@@ -12,6 +12,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   tasks of the request the agent is working on; for a duplicate or any other
   request, the agent reports the task ID and tells the person to ask in that
   request's own thread or to stop it with `/stop task <task_id>`.
+- `user-onboarding-guide` saves tour progress with the `record_digest` of the
+  listed progress fact. Universal Agents refuses an agent's memory replace or
+  delete without the version of the fact it read, so a delayed change cannot
+  overwrite a newer one or reach a different fact that took over its number.
+  If the replace is refused with `changed_since_read`, the guide lists again.
 - Personal-details checks now come from the shared project template:
   `scripts/check_personal_details.py` also checks commit identities, commit
   messages and every line in history; Git hooks in `.githooks/` run it before
