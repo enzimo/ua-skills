@@ -7,6 +7,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `long-horizon-plan-execution` no longer tells the agent to stop duplicate
+  tasks with `control_task_queue`. That tool now pauses, resumes or stops only
+  tasks of the request the agent is working on; for a duplicate or any other
+  request, the agent reports the task ID and tells the person to ask in that
+  request's own thread or to stop it with `/stop task <task_id>`.
 - Personal-details checks now come from the shared project template:
   `scripts/check_personal_details.py` also checks commit identities, commit
   messages and every line in history; Git hooks in `.githooks/` run it before
