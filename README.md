@@ -43,6 +43,9 @@ Below is a summary of the skills currently available in this repository:
 | **`systematic-debugging`** | Applies a four-phase debugging methodology with root cause analysis before fixes. |
 | **`user-onboarding-guide`** | Guides early Universal Agents conversations with a warm opt-in tour of the team, sign-ins, the Inbox, schedules, objectives, memory, files and the Web Chat screen, then a menu of deeper and administrator-only topics, with remembered progress. |
 
+The Web Chat screen tour covers **Separate request** for sending the next
+message and its files to a new chat, and **Retry** for a failed send.
+
 The Knowledge tour describes editable **Home** articles, the paginated
 **All pages** directory and **All pages → Archived pages → Restore**. It explains that
 publishing an archive proposal keeps the current page's text and details;
