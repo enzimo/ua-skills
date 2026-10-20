@@ -48,6 +48,11 @@ The Knowledge tour describes editable **Home** articles, the paginated
 publishing an archive proposal keeps the current page's text and details;
 archive proposals have no **Edit, then publish** action.
 
+The onboarding guide saves memory progress using the fact's `record_digest`.
+The planning guide changes Objectives using `expected_version` and keeps task
+controls within the current request. These instructions require a Universal
+Agents version with those tool arguments and request checks.
+
 ---
 
 ## 🚀 Creating & Validating Skills

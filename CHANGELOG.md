@@ -47,6 +47,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   only some Runtime Controls, and repeating the control that set the current
   status retries what did not finish; and a task that ends while its Objective
   is paused or being deleted leaves it that way.
+- `long-horizon-plan-execution` tells the team lead to change an Objective from
+  what it last read: `objectives(action="get")`, `list` and `create_objective`
+  return the Objective's `version`, and `update_progress` and `update_status`
+  need it as `expected_version`. A `changed_since_read` refusal means another
+  request changed the Objective meanwhile, so the team lead reads it again and
+  decides on what it says now. Linked tasks, Plans, schedules, heartbeat items
+  and work sessions do not change the version. This needs a Universal Agents
+  release where the Objective tools take a version.
 
 ## [0.2.0] - 2026-10-15
 
