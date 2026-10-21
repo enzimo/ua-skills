@@ -7,6 +7,16 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `long-horizon-plan-execution` no longer tells the agent to stop duplicate
+  tasks with `control_task_queue`. That tool now pauses, resumes or stops only
+  tasks of the request the agent is working on; for a duplicate or any other
+  request, the agent reports the task ID and tells the person to ask in that
+  request's own thread or to stop it with `/stop task <task_id>`.
+- `user-onboarding-guide` saves tour progress with the `record_digest` of the
+  listed progress fact. Universal Agents refuses an agent's memory replace or
+  delete without the version of the fact it read, so a delayed change cannot
+  overwrite a newer one or reach a different fact that took over its number.
+  If the replace is refused with `changed_since_read`, the guide lists again.
 - Personal-details checks now come from the shared project template:
   `scripts/check_personal_details.py` also checks commit identities, commit
   messages and every line in history; Git hooks in `.githooks/` run it before
@@ -37,6 +47,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   only some Runtime Controls, and repeating the control that set the current
   status retries what did not finish; and a task that ends while its Objective
   is paused or being deleted leaves it that way.
+- `long-horizon-plan-execution` tells the team lead to change an Objective from
+  what it last read: `objectives(action="get")`, `list` and `create_objective`
+  return the Objective's `version`, and `update_progress` and `update_status`
+  need it as `expected_version`. A `changed_since_read` refusal means another
+  request changed its definition or success criteria, so the team lead reads
+  it again and decides on what it says now. Status, progress and runtime links
+  do not change the version. This needs a Universal Agents
+  release where the Objective tools take a version.
 
 ## [0.2.0] - 2026-10-15
 

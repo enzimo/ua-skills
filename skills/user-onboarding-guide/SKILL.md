@@ -179,9 +179,12 @@ otherwise ends the tour:
 1. Identify the last completed step or topic id.
 2. Call `memory(action="list", bank="usermem")` when available and look for
    an existing fact tagged `onboarding_guide`.
-3. If one exists, call `memory(action="replace", bank="usermem", memory_id=...)`
-   with the updated fact. Otherwise call
-   `memory(action="create", bank="usermem", fact_text=...)`.
+3. If one exists, call `memory(action="replace", bank="usermem", memory_id=...,
+   record_digest=...)` with the updated fact, passing the `memory_id` and
+   `record_digest` of that fact from the list. Otherwise call
+   `memory(action="create", bank="usermem", fact_text=...)`. If the replace is
+   refused with `changed_since_read`, the fact changed after the list: list
+   again and replace the current fact.
 4. Use fact text like:
    `Onboarding guide progress: completed through step_id; resume at next_step_id.`
 5. Include metadata when supported:

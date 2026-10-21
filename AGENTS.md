@@ -1,5 +1,10 @@
 # Agent Instructions (`AGENTS.md`)
 
+Keep memory and Objective edits tied to the versions returned by their list or
+detail tools. After `changed_since_read`, read the record again before deciding
+what to change. Keep task controls within the agent's current request; direct
+people to their own task controls for other requests.
+
 This file guides AI agents when operating within the `ua-skills` repository.
 
 Keep Crawl4AI setup aligned with the Universal Agents MCP model: an installed
