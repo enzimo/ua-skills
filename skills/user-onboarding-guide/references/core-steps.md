@@ -34,7 +34,7 @@ where its feature lives.
   while the team's knowledge base is on, **Knowledge** (shared pages).
   Administrators also see **Status**.
 - The 📎 button by the message box attaches files.
-- **Separate request** below Send starts a new chat for the next ordinary
+- **Launch parallel thread** below Send starts a new chat for the next ordinary
   message and its files, with replies kept there. Explain that it turns off
   once the message moves. Leave it off to continue the selected chat. On a
   failed send, use **Retry** in that chat to keep the same request and files.
