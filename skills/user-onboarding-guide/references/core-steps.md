@@ -35,9 +35,12 @@ where its feature lives.
   Administrators also see **Status**.
 - The 📎 button by the message box attaches files.
 - **Launch parallel thread** below Send starts a new chat for the next ordinary
-  message and its files, with replies kept there. Explain that it turns off
-  once the message moves. Leave it off to continue the selected chat. On a
-  failed send, use **Retry** in that chat to keep the same request and files.
+  message and its files, with replies kept there. The team lead works on every
+  request in that chat at the same time as its other work, so suggest it for
+  work that does not change the same things as the person's other running
+  requests. Explain that it turns off once the message moves. Leave it off to
+  continue the selected chat. On a failed send, use **Retry** in that chat to
+  keep the same request and files.
 
 ```text
 🗺️ A quick map: **New Chat** and your past threads are on the left. The ⚙ **Settings** button opens your Inbox, Access, Accounts (whose account agents use for each service), Team, Tasks, Memories and Appearance. Below those tabs are links to your files (**Workspace**), your objectives and schedules (**Runtime**) and the team's shared pages (**Knowledge**).
