@@ -10,8 +10,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `user-onboarding-guide` says that the team lead works on a chat started with
   **Launch parallel thread** at the same time as its other work, and suggests
   it for work that does not change the same things as the person's other
-  running requests. Universal Agents now runs such a chat's requests at once
-  instead of queueing them behind other work.
+  running requests. Universal Agents now runs such a chat's requests, and the
+  runs of schedules and Objective work set up there, at once instead of
+  queueing them behind other work.
 
 - `long-horizon-plan-execution` no longer tells the agent to stop duplicate
   tasks with `control_task_queue`. That tool now pauses, resumes or stops only
