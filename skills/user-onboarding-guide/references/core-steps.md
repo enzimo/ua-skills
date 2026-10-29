@@ -34,14 +34,14 @@ where its feature lives.
   while the team's knowledge base is on, **Knowledge** (shared pages).
   Administrators also see **Status**.
 - The 📎 button by the message box attaches files.
-- **Launch parallel thread** below Send starts a new chat for the next ordinary
-  message and its files, with replies kept there. The team lead works on every
-  request in that chat, and on each run of a schedule or Objective work set up
-  there, at the same time as its other work, so suggest it for work that does
-  not change the same things as the person's other running requests. Explain
-  that it turns off once the message moves. Leave it off to
-  continue the selected chat. On a failed send, use **Retry** in that chat to
-  keep the same request and files.
+- Explain that **Launch parallel thread** below Send keeps the selected chat
+  and its full history, and marks it as safe to run beside other work when
+  sending an ordinary message. Include later requests and each run of schedules
+  or Objective work set up there. Suggest it for work that does not change
+  the same things as other running requests. Explain that the switch resets after sending
+  but the thread keeps its parallel setting for later messages. Use **New
+  Chat** first for an empty conversation. On a failed send, use **Retry** in
+  that chat to keep the same request and files.
 
 ```text
 🗺️ A quick map: **New Chat** and your past threads are on the left. The ⚙ **Settings** button opens your Inbox, Access, Accounts (whose account agents use for each service), Team, Tasks, Memories and Appearance. Below those tabs are links to your files (**Workspace**), your objectives and schedules (**Runtime**) and the team's shared pages (**Knowledge**).

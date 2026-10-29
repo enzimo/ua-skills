@@ -35,6 +35,8 @@ the commands in its `references/` aligned with the Universal Agents Web Chat and
 administrator topics only to administrators.
 Keep the screen tour aligned with the one-message **Launch parallel thread** switch
 and **Retry**, which keeps the original request, files and chat.
+Explain that the switch keeps the current conversation and history, marking
+the thread for parallel work; its saved setting persists after the switch resets.
 Keep the Knowledge tour aligned with editable **Home** articles and the
 paginated **All pages** directory. Keep **All pages → Archived pages → Restore** current.
 Describe archive proposals as preserving the current page's text and details,
