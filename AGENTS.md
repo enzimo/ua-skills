@@ -33,10 +33,10 @@ a core tour, then a menu of deeper topics, fitted to the chat app (the `Channel:
 the person is an administrator (the runtime's `Person you work for:` line). Keep the Web Chat labels and
 the commands in its `references/` aligned with the Universal Agents Web Chat and `/help`, and show
 administrator topics only to administrators.
-Keep the screen tour aligned with the one-message **Launch parallel thread** switch
-and **Retry**, which keeps the original request, files and chat.
-Explain that the switch keeps the current conversation and history, marking
-the thread for parallel work; its saved setting persists after the switch resets.
+Keep the screen tour aligned with the **Run concurrently** switch, a saved
+setting of each chat that keeps its conversation and history and is locked
+while the chat works on a request, and with **Retry**, which keeps the original
+request, files and chat.
 Keep the Knowledge tour aligned with editable **Home** articles and the
 paginated **All pages** directory. Keep **All pages → Archived pages → Restore** current.
 Describe archive proposals as preserving the current page's text and details,
