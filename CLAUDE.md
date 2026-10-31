@@ -2,7 +2,9 @@
 
 Keep memory and Objective edits tied to the versions returned by their list or
 detail tools. After `changed_since_read`, read the record again before deciding
-what to change. Keep task controls within the agent's current request; direct
+what to change. After `change_conflict` (someone else changed the record while
+the request ran), read its `brief` and change only fields the other writer did
+not set; after `needs_person_decision`, leave the record and tell the person. Keep task controls within the agent's current request; direct
 people to their own task controls for other requests.
 
 This file guides AI agents and developers working on the `ua-skills` repository.
