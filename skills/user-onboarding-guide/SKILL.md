@@ -184,7 +184,10 @@ otherwise ends the tour:
    `record_digest` of that fact from the list. Otherwise call
    `memory(action="create", bank="usermem", fact_text=...)`. If the replace is
    refused with `changed_since_read`, the fact changed after the list: list
-   again and replace the current fact.
+   again and replace the current fact. If it is refused with `change_conflict`
+   or `needs_person_decision`, another of the person's requests updated the
+   progress meanwhile: do not save over it, and tell the user where the tour
+   stopped so they can resume from there.
 4. Use fact text like:
    `Onboarding guide progress: completed through step_id; resume at next_step_id.`
 5. Include metadata when supported:

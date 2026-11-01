@@ -7,6 +7,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `user-onboarding-guide` handles the refusals Universal Agents 0.10 gives a
+  request whose memory fact someone else changed while it ran: after
+  `change_conflict` or `needs_person_decision` it does not save the tour
+  progress over the other change and tells the user where the tour stopped.
+  The repository's agent instructions describe both refusals.
+
 - `user-onboarding-guide` explains **Run concurrently**, the Web Chat switch
   that replaced **Launch parallel thread**: a saved setting of each chat that
   keeps its conversation and history, is locked while the chat works on a
