@@ -138,6 +138,8 @@ password managers.
 Keep the long-horizon runtime mapping aligned with automatic scheduled workers,
 prospective tool readiness, and schedule-specific access approval. Preserve the
 separate protected Objective work-session workflow.
+During a message-contract drain, direct agents to finish held work or wait for
+the restarted team, without spawning workers or repeating delegations.
 Treat automatic-start eligibility as TeamLead-managed through bounded runtime
 settings; retain operator control of explicit denies, the kill switch and limits.
 Keep memory timers on the local MemReviewAgent scheduler and document the offline
