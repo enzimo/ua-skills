@@ -75,6 +75,17 @@ evaluations and selections as advisory records rather than workspace isolation,
 effect authority, integration, or final verification.
 Keep durable-lesson guidance aligned with knowledge search, pages and notes.
 Preserve review of team contributions made for a person.
+The catalog includes `coder-critic-team` for supervised coder-and-critic
+implementation. Keep its protocol, `scripts/cct.py` validation and the role
+files consistent: the coder decides every critique except a blocking one the
+critic maintains, which the lead rules on; the lead is the only ledger writer
+and passes turn briefs unchanged. Keep every report number computed by
+`cct.py stats`, the report script-free, and `references/report-design.md`,
+`assets/report.css` and `scripts/render_report.py` in step. Keep its Universal
+Agents mapping limited to the existing `delegate_task` and
+`needs_specialist_support` escalation, per-agent-type model settings,
+`secure_cli` GitHub actions and `notify_user` attachments; a hosted report
+page needs a Universal Agents change first.
 The catalog's `markitdown` skill complements the Universal Agents bundled local
 AnyDoc skill by owning broader formats, URLs, plugins, and OCR-related
 workflows; do not blur that converter boundary with a silent fallback.

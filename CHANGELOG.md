@@ -5,6 +5,21 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `coder-critic-team` runs a code change with a lead, a coder and a critic. The
+  coder plans first and the critic reviews the plan across nine lenses; the
+  coder answers each critique, the critic gets one last word, and a maintained
+  blocking critique goes to the lead. The coder then builds in committed
+  checkpoints that the critic reviews, opens the pull request, and the lead
+  runs `project-review-process`, sends blocking findings back for one fix
+  round and files the rest as issues. `scripts/cct.py` keeps the run ledger,
+  says whose turn it is, writes each worker's turn brief and computes the
+  statistics; `scripts/render_report.py` validates those statistics and renders
+  a script-free report with its own design (`references/report-design.md`),
+  inline in T3 Code or as a standalone light and dark page. The skill maps the protocol to T3 Code,
+  Claude Code, Codex and Universal Agents.
+
 ### Changed
 
 - `user-onboarding-guide` handles the refusals Universal Agents 0.10 gives a
