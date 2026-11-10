@@ -76,8 +76,10 @@ later, when the person says so. Leave an unmerged or abandoned run as it is.
 
 1. Confirm the merge: `gh pr view 142 --repo example-owner/relay --json state
    --jq .state` must print `MERGED`.
-2. Update the base branch in the main checkout with `git pull --ff-only`
-   there, so git sees the merge.
+2. Run `git fetch` in the main checkout, so the remote-tracking branches git
+   compares with include the merge. Pull with `--ff-only` there only when
+   the main checkout is on the brief's base branch and has no changes; never
+   switch or update another branch in it.
 3. Run `cct.py tidy RUN_DIR --merged --worktree`. It removes the coder's
    worktree, the local work branch and the run's working files, and keeps
    `stats.json` and the reports. Leave out `--worktree` when the coder worked

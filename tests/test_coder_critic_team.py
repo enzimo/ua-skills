@@ -1128,11 +1128,24 @@ class TidyWorktreeTest(unittest.TestCase):
         sh(d.main, "fetch", "-q", "--prune")  # main in the main checkout is now behind origin/main
         out = self.tidy(d)
         self.assertIn("not merged into the main checkout's HEAD (main in", out)
-        self.assertIn(f"update main there first (for example 'git -C {d.main} pull --ff-only')", out)
+        self.assertIn(f"update main there first ('git -C {d.main} pull --ff-only', when it has no "
+                      "changes)", out)
         self.assertNotIn("Removed", out)
         self.assertTrue(d.repo.exists())
         sh(d.main, "merge", "-q", "--ff-only", "origin/main")
         self.assert_removed(d, self.tidy(d))
+
+    def test_a_main_checkout_on_another_branch_is_not_updated(self):
+        d = closed_run(self.base, worktree=True)
+        sh(d.main, "switch", "-q", "-c", "other-work")
+        sh(d.main, "push", "-q", "origin", ":feat/webhook-retry")
+        sh(d.main, "fetch", "-q", "--prune")
+        out = self.tidy(d)
+        self.assertIn("not merged into the main checkout's HEAD (other-work in", out)
+        self.assertIn("not on the base branch main, and tidy does not switch or update it", out)
+        self.assertNotIn("--ff-only", out)
+        self.assertNotIn("fetch", out)
+        self.assertTrue(d.repo.exists())
 
     def test_refuses_and_removes_nothing(self):
         d = closed_run(self.base, worktree=True)

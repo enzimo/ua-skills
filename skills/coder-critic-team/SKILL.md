@@ -208,8 +208,8 @@ loaded this skill from, or in Universal Agents the path
     1. Confirm the merge as [references/runtimes.md](references/runtimes.md)
        describes. `--merged` says you did; `cct.py` cannot check it.
     2. Run `cct.py tidy RUN_DIR --merged`. Add `--worktree` when the coder
-       worked in a linked worktree made for the run, after updating the base
-       branch in the main checkout so git sees the merge. `tidy` removes the
+       worked in a linked worktree made for the run, after `git fetch` in
+       the main checkout so git sees the merge. `tidy` removes the
        run's working files, the ledger last, and keeps `stats.json` and the
        rendered reports. With `--worktree` it also removes that worktree,
        with its ignored files such as build output, and the local work

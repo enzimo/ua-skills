@@ -1781,17 +1781,25 @@ def worktree_target(run: Run) -> Dict[str, str]:
     merged = subprocess.run(["git", "-C", top, "merge-base", "--is-ancestor", head, against],
                             capture_output=True, check=False).returncode == 0
     if not merged:
+        by_hand = ("check that the pull request is merged, then remove the worktree and branch "
+                   "yourself and run tidy without --worktree")
         if upstream:
             where = git(top, "rev-parse", "--abbrev-ref", f"{branch}@{{upstream}}")
-            update = f"fetch it first ('git -C {main} fetch')"
+            advice = (f"If the pull request was merged with a merge commit, fetch first ('git -C "
+                      f"{main} fetch') and run tidy again. After a squash or rebase merge, {by_hand}")
         else:
-            on = entries[0].get("branch", "").replace("refs/heads/", "") or "a detached HEAD"
-            where = f"the main checkout's HEAD ({on} in {main})"
-            update = f"update {on} there first (for example 'git -C {main} pull --ff-only')"
+            on = entries[0].get("branch", "").replace("refs/heads/", "")
+            base = repo["base"][len("origin/"):] if repo["base"].startswith("origin/") else repo["base"]
+            where = f"the main checkout's HEAD ({on or 'a detached HEAD'} in {main})"
+            if on == base:
+                advice = (f"If the pull request was merged with a merge commit, update {on} there "
+                          f"first ('git -C {main} pull --ff-only', when it has no changes) and run "
+                          f"tidy again. After a squash or rebase merge, {by_hand}")
+            else:
+                advice = (f"The main checkout is not on the base branch {base}, and tidy does not "
+                          f"switch or update it: {by_hand}")
         raise refuse(f"git would not delete {branch} without force: it is not merged into {where}. "
-                     f"If the pull request was merged with a merge commit, {update} and run tidy "
-                     "again. After a squash or rebase merge, check the branch, then remove the "
-                     "worktree and branch yourself and run tidy without --worktree")
+                     + advice)
     return {"top": top, "main": main, "branch": branch}
 
 
