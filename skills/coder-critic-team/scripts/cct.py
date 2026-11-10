@@ -998,7 +998,8 @@ def cmd_init(args: argparse.Namespace) -> None:
     top = Path(git(repo["path"], "rev-parse", "--show-toplevel")).resolve()
     if run_dir == top or top in run_dir.parents:
         raise CctError("keep the run folder outside the checkout so it never enters the PR")
-    repo["base_sha"] = git(repo["path"], "rev-parse", repo["base"])
+    if not git(repo["path"], "rev-parse", "--verify", "--quiet", f"{repo['base']}^{{commit}}", check=False):
+        raise CctError(f"brief.repo: the base '{repo['base']}' is not a commit in {repo['path']}")
     workers = need(brief, "workers", where, dict)
     for role in ("coder", "critic"):
         need(need(workers, role, "brief.workers", dict), "model", f"brief.workers.{role}")
@@ -1018,6 +1019,7 @@ def cmd_init(args: argparse.Namespace) -> None:
         brief["pull_request"] = entry
     brief.setdefault("follow_up_issues", "file")
     one_of(brief["follow_up_issues"], ["file", "propose"], "brief.follow_up_issues")
+    repo["base_sha"] = run_start(repo, existing_pr=bool(brief.get("pull_request")))
     if run_dir.exists() and any(run_dir.iterdir()):
         raise CctError(f"{run_dir} is not empty; use a new run folder")
     for sub in ("turns", "diffs", "roles"):
@@ -1029,7 +1031,34 @@ def cmd_init(args: argparse.Namespace) -> None:
     (run_dir / LEDGER).write_text(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n",
                                   encoding="utf-8")
     print(f"Run folder ready: {run_dir}")
+    print(f"Base commit: {repo['base_sha'][:10]}, the head of {repo['branch']}; checkpoint diffs "
+          "and the report count only the commits after it.")
     print(f"Next: start the coder with the turn brief from 'cct.py turn {run_dir} --for coder'.")
+
+
+def run_start(repo: Dict[str, Any], existing_pr: bool) -> str:
+    """The commit the run starts from: the work branch's head when the run begins.
+
+    The base name is not used for this: a local base branch can be behind its
+    remote, or can have moved on since the branch was made, and an existing
+    pull request's branch already holds commits that are not the run's.
+    """
+    path, branch = repo["path"], repo["branch"]
+    head = git(path, "rev-parse", "--verify", "--quiet", f"refs/heads/{branch}^{{commit}}", check=False)
+    if not head:
+        raise CctError(f"brief.repo: the work branch '{branch}' does not exist in {path}; create it "
+                       "first, then run init")
+    if existing_pr:
+        # The pull request's branch must not be older here than on the remote,
+        # or the remote's commits would count as the run's once the coder pulls.
+        upstream = git(path, "rev-parse", "--verify", "--quiet", f"{branch}@{{upstream}}", check=False)
+        behind = int(git(path, "rev-list", "--count", f"{head}..{upstream}") or 0) if upstream else 0
+        if behind:
+            name = git(path, "rev-parse", "--abbrev-ref", f"{branch}@{{upstream}}")
+            raise CctError(f"brief.repo: the pull request's branch '{branch}' is {behind} commit(s) "
+                           f"behind {name}; update it first (for example 'git merge --ff-only "
+                           f"{name}'), so the run counts only its own commits")
+    return head
 
 
 def brief_markdown(brief: Dict[str, Any]) -> str:
@@ -1049,7 +1078,7 @@ def brief_markdown(brief: Dict[str, Any]) -> str:
     repo = brief["repo"]
     lines += ["## Repository", "",
               f"- Checkout: `{repo['path']}`",
-              f"- Base: `{repo['base']}` ({repo['base_sha'][:10]})",
+              f"- Base: `{repo['base']}`; the run starts at `{repo['base_sha'][:10]}`",
               f"- Work branch: `{repo['branch']}`"]
     if brief.get("pull_request"):
         lines.append(f"- Pull request: {pr_name(brief['pull_request'])} already exists. Push to it; "

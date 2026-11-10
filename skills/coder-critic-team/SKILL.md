@@ -87,7 +87,11 @@ loaded this skill from, or in Universal Agents the path
 2. **Prepare the run.** Create the work branch and a worktree for the coder,
    and a new run folder outside the checkout. Then run
    `cct.py init RUN_DIR --brief brief.json`. This records the brief and copies
-   `protocol.md`, `coder.md` and `critic.md` into `RUN_DIR/roles/`.
+   `protocol.md`, `coder.md` and `critic.md` into `RUN_DIR/roles/`. It records
+   the work branch's head as the commit the run starts from and prints it:
+   checkpoint diffs and the report count only the commits after it. For an
+   existing pull request, bring its branch up to date with the remote first;
+   `init` refuses a branch that is behind.
 
    When a project review already ran and this run fixes its findings, record
    it now as a `review_result` with `"stage": "before_run"`. The workers'

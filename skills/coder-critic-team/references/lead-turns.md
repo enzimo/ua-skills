@@ -51,6 +51,9 @@ request and a `fix_request` come after it.
   refuses a `pr` turn with another URL. Say in `constraints` what else to do
   with it, such as a new base or labels.
 - The run folder must be new and outside the checkout.
+- Create the work branch before `cct.py init`. It records the branch's head
+  as the commit the run starts from, whatever `base` points to locally, and
+  refuses an existing pull request's branch that is behind its upstream.
 
 ## Intervention
 

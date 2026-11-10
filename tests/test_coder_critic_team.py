@@ -88,7 +88,10 @@ class Driver:
         return self.call("post", str(self.run), "--actor", cct.ACTOR_OF[first["type"]],
                          "--file", str(path), "--at", at(minutes))
 
-    def init(self, **extra) -> None:
+    def init(self, **extra) -> str:
+        return self.call("init", str(self.run), "--brief", str(self.brief_file(**extra)), "--at", T0)
+
+    def brief_file(self, **extra) -> Path:
         brief = {
             "title": "Retry failed webhook deliveries with exponential backoff",
             "outcome": "Webhook deliveries that fail transiently are retried with backoff and "
@@ -114,7 +117,7 @@ class Driver:
         path = self.run.parent / "brief.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(brief))
-        self.call("init", str(self.run), "--brief", str(path), "--at", T0)
+        return path
 
 
 LENSES = {lens: f"How the plan handles {lens}." for lens in cct.CORE_LENSES}
@@ -790,6 +793,77 @@ class ExistingPullRequestTest(unittest.TestCase):
         (d.repo / "notes-from-critic.txt").write_text("x")
         out = d.post(8, {"type": "review", "summary": "s", "items": []})
         self.assertIn("Signal: checkout_changed", out)
+
+
+class InitBaseTest(unittest.TestCase):
+    """cct.py init records the commit the run starts from, not the tip of a stale base."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.base = Path(self.tmp.name)
+        self.d = Driver(self.base)  # main and feat/webhook-retry at the first commit
+        sh(self.base, "init", "-q", "--bare", "origin.git")
+        sh(self.d.repo, "remote", "add", "origin", str(self.base / "origin.git"))
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_a_local_base_behind_its_remote_is_not_counted(self):
+        repo = self.d.repo
+        stale = sh(repo, "rev-parse", "main")
+        sh(repo, "switch", "-q", "main")
+        write_lines(repo, "src/relay/metrics.py", 5, "upstream")
+        commit(repo, "A commit the local main does not have yet")
+        sh(repo, "push", "-q", "-u", "origin", "main")
+        start = sh(repo, "rev-parse", "HEAD")
+        sh(repo, "switch", "-q", "-C", "feat/webhook-retry", "origin/main")
+        sh(repo, "branch", "-f", "main", stale)  # local main is now behind origin/main
+        # origin/main moves on again; the branch made from it does not need it.
+        sh(repo, "switch", "-q", "-c", "elsewhere", "origin/main")
+        write_lines(repo, "src/relay/other.py", 3, "later")
+        commit(repo, "Later work on main")
+        sh(repo, "push", "-q", "origin", "elsewhere:main")
+        sh(repo, "switch", "-q", "feat/webhook-retry")
+
+        out = self.d.init()
+        self.assertIn(f"Base commit: {start[:10]}", out)
+        brief = json.loads((self.d.run / "ledger.jsonl").read_text().splitlines()[0])["data"]
+        self.assertEqual(brief["repo"]["base_sha"], start)
+        self.assertIn(f"the run starts at `{start[:10]}`", (self.d.run / "brief.md").read_text())
+
+        self.d.post(5, {"type": "plan", "summary": "s", "units": [{"name": "u", "purpose": "p"}],
+                        "lenses": LENSES, "checkpoints": ["one"]})
+        self.d.post(8, {"type": "review", "summary": "s", "items": []})
+        write_lines(repo, "src/relay/retry.py", 10, "run")
+        commit(repo, "The run's only commit")
+        self.d.post(20, {"type": "checkpoint", "title": "a", "tests": {"passed": 1, "failed": 0}})
+        state = cct.Run(self.d.run)
+        g = state.checkpoints[-1]["data"]["git"]
+        self.assertEqual((g["from"], g["commits"], g["adds"], g["dels"]), (start, 1, 10, 0))
+        self.d.call("stats", str(self.d.run))
+        diff = json.loads((self.d.run / "stats.json").read_text())["diff"]
+        self.assertEqual((diff["commits"], diff["adds"], diff["files"]), (1, 10, 1))
+
+    def test_a_missing_work_branch_is_refused(self):
+        sh(self.d.repo, "switch", "-q", "main")
+        sh(self.d.repo, "branch", "-q", "-D", "feat/webhook-retry")
+        msg = self.d.refused("init", str(self.d.run), "--brief", str(self.d.brief_file()))
+        self.assertIn("work branch 'feat/webhook-retry' does not exist", msg)
+        self.assertFalse(self.d.run.exists())
+
+    def test_a_pull_request_branch_behind_its_remote_is_refused(self):
+        repo = self.d.repo
+        write_lines(repo, "src/relay/retry.py", 4, "earlier session")
+        commit(repo, "Pushed in an earlier session")
+        sh(repo, "push", "-q", "-u", "origin", "feat/webhook-retry")
+        sh(repo, "reset", "-q", "--hard", "HEAD~1")  # this checkout never pulled it
+        path = self.d.brief_file(pull_request={"url": PR_URL, "number": 101})
+        msg = self.d.refused("init", str(self.d.run), "--brief", str(path))
+        self.assertIn("1 commit(s) behind origin/feat/webhook-retry", msg)
+        self.assertFalse(self.d.run.exists())
+        sh(repo, "merge", "-q", "--ff-only", "origin/feat/webhook-retry")
+        self.assertIn(f"Base commit: {sh(repo, 'rev-parse', 'HEAD')[:10]}",
+                      self.d.init(pull_request={"url": PR_URL, "number": 101}))
 
 
 class RenderEdgeTest(unittest.TestCase):
