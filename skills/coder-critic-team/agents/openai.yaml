@@ -1,0 +1,4 @@
+interface:
+  display_name: "Coder-Critic Team"
+  short_description: "Run a supervised coder and critic pair from brief to reviewed PR"
+  default_prompt: "Use $coder-critic-team to have a coder and a critic implement this change, review the pull request, and report on the work."

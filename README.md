@@ -31,6 +31,7 @@ Below is a summary of the skills currently available in this repository:
 | **`hf-cli`** | Searches Hugging Face models/datasets and performs bounded brokered file transfers. |
 | **`brave-search`** | Uses Brave Search API for independent-index web search, LLM grounding context, freshness filters, Goggles ranking, and provider comparison workflows. |
 | **`build-project-room`** | Prepares gated project rooms for high-stakes, multi-source knowledge work from messy or conflicting source material. |
+| **`coder-critic-team`** | Runs a supervised coder and critic pair from brief to reviewed pull request: plan review, checkpoint reviews across intent, correctness, security, scalability, modularity, complexity, concurrency, failure handling and testing, lead rulings on maintained blockers, a `project-review-process` review with one fix round, and a statistics report shown in T3 Code or as a standalone page. It also fixes the findings of an earlier review on an existing pull request and re-checks each one. |
 | **`bw`** | Uses Bitwarden through brokered secure CLI actions and the login/unlock form, configures self-hosted servers with `/auth bitwarden server`, and searches credential metadata without revealing secrets. |
 | **`crawl4ai`** | Coordinates MCP setup, account links and Inbox review, then uses the available Crawl4AI tools for rendered retrieval, extraction, screenshots, PDFs, and crawl workflows. |
 | **`long-horizon-plan-execution`** | Guides self-sustaining teams through goal contracts, independent Objective/Plan/Task lifecycles, evolving completion criteria, actionable-frontier planning, level-specific progress definitions, supervised replanning, selective alternatives, negotiated work sessions, adaptive OODA execution, recovery, and evidence-based closure. |
@@ -171,6 +172,8 @@ password managers.
 Keep the long-horizon runtime mapping aligned with automatic scheduled workers,
 prospective tool readiness, and schedule-specific access approval. Preserve the
 separate protected Objective work-session workflow.
+During a message-contract drain, finish held work or wait for the restarted
+team; starting workers or repeating delegations does not resolve the mismatch.
 Treat automatic-start eligibility as TeamLead-managed through bounded runtime
 settings; retain operator control of explicit denies, the kill switch and limits.
 The runtime mapping runs memory timers locally with MemReviewAgent and documents

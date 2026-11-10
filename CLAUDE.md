@@ -86,6 +86,23 @@ candidate evaluations and selections as advisory; they do not isolate mutable
 work, authorize effects, apply a route, or replace post-integration verification.
 Keep durable-lesson guidance aligned with knowledge search, pages and notes.
 Preserve review of team contributions made for a person.
+The catalog includes `coder-critic-team` for supervised coder-and-critic
+implementation. Keep its protocol, `scripts/cct.py` validation and the role
+files consistent: the coder decides every critique except a blocking one the
+critic maintains, which the lead rules on; the lead is the only ledger writer
+and hands each worker the brief file `cct.py` wrote, by its path and
+unchanged. Keep the two ways a run meets a review working: a review of the
+new pull request, and a review from before the run whose findings the run
+fixes on an existing pull request and the lead re-checks. Keep every report
+number computed by `cct.py stats`, the report script-free, and
+`references/report-design.md`, `assets/report.css` and
+`scripts/render_report.py` in step. Keep the in-thread report the whole report
+in compact form, shown from its file, and keep `render_report.py` reading
+statistics of schema 1 and 2. Keep its Universal
+Agents mapping limited to the existing `delegate_task` and
+`needs_specialist_support` escalation, per-agent-type model settings,
+`secure_cli` GitHub actions and `notify_user` attachments; a hosted report
+page needs a Universal Agents change first.
 The catalog's `markitdown` skill complements the Universal Agents bundled local
 AnyDoc skill by owning broader formats, URLs, plugins, and OCR-related
 workflows; do not blur that converter boundary with a silent fallback.
@@ -149,6 +166,8 @@ password managers.
 Keep the long-horizon runtime mapping aligned with automatic scheduled workers,
 prospective tool readiness, and schedule-specific access approval. Preserve the
 separate protected Objective work-session workflow.
+During a message-contract drain, direct agents to finish held work or wait for
+the restarted team, without spawning workers or repeating delegations.
 Treat automatic-start eligibility as TeamLead-managed through bounded runtime
 settings; retain operator control of explicit denies, the kill switch and limits.
 Keep memory timers on the local MemReviewAgent scheduler and document the offline
