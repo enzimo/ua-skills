@@ -47,6 +47,8 @@ apply.
 - Record deviations from the plan as they happen, with the reason.
 - Keep each checkpoint reviewable: roughly 50 to 250 changed lines.
 - After a review, apply what you accepted before or within the next checkpoint.
+- When the run fixes the findings of an earlier review, list in `addresses`
+  the findings each checkpoint fixes.
 - Mark the last checkpoint before the pull request `"final": true`, after the
   full test suite and linters pass. If you change code after the final review,
   record another checkpoint: the pull request must be exactly what the critic
@@ -55,8 +57,10 @@ apply.
 ## Open the pull request
 
 Push the work branch and open the pull request as a draft unless the brief says
-otherwise. Use the project's pull request template when it has one; otherwise
-include:
+otherwise. When the brief names a pull request that already exists, push to
+that one without force, open no other, and leave its draft or ready state as
+it is; update its description, base and labels where the brief asks for that.
+Use the project's pull request template when it has one; otherwise include:
 
 - what changed and why, linked to the acceptance criteria;
 - how it was tested, with the commands;

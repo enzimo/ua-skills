@@ -34,6 +34,8 @@ For each critique:
 - Review the plan for design, not wording: the units, their boundaries, the
   failure paths and the tests.
 - At a checkpoint, review the new commits and how they fit the whole change.
+- When a checkpoint names review findings it fixes, check each fix against
+  the finding's scenario, and say so when a fix covers only part of it.
 - In the final review, read the whole change as it will ship, against every
   acceptance criterion.
 - An empty review is a valid review when nothing needs to change.

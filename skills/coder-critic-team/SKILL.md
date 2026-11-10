@@ -1,6 +1,6 @@
 ---
 name: coder-critic-team
-description: This skill should be used when a team lead hands a scoped code change to a supervised pair of agents, a coder that plans and writes all the code and a critic that reviews the plan and every checkpoint for intent, correctness, security, scalability, modularity, unnecessary complexity, concurrency, failure handling and testing. It covers the brief, the turn protocol and run ledger, stall detection and lead rulings, the pull request, a project-review-process review with one fix round, and a statistics report shown in T3 Code or as a standalone page. It should not be used for quick single-agent fixes, for reviewing an existing pull request, or for work that produces no code change.
+description: This skill should be used when a team lead hands a scoped code change to a supervised pair of agents, a coder that plans and writes all the code and a critic that reviews the plan and every checkpoint for intent, correctness, security, scalability, modularity, unnecessary complexity, concurrency, failure handling and testing. It covers the brief, the turn protocol and run ledger, stall detection and lead rulings, a new or existing pull request, a project-review-process review with one fix round or the fixing and re-checking of an earlier review's findings, and a statistics report shown in T3 Code or as a standalone page. It should not be used for quick single-agent fixes, for reviewing an existing pull request, or for work that produces no code change.
 ---
 
 # Coder-Critic Team
@@ -10,13 +10,16 @@ supervises. The **coder** writes every line, plan first, then in checkpoints.
 The **critic** reviews the plan and each checkpoint while the work is still
 cheap to change. The coder has the final say on each critique, except a
 blocking critique the critic maintains after its last word; the lead rules
-on that. When the pair finishes, the coder opens the pull request. The lead
-then runs `project-review-process`, sends any blocking findings back for one
-fix round, files the rest as follow-ups, and reports with statistics.
+on that. When the pair finishes, the coder opens the pull request, or pushes
+to the one the brief names. The lead then runs `project-review-process`, sends
+any blocking findings back for one fix round, files the rest as follow-ups,
+and reports with statistics. When a review already ran and the run is there to
+fix its findings, the lead records that review first and re-checks each
+finding at the end.
 
-The lead stays out of the exchange. It passes each turn brief to a worker
-without changing it, watches for stalls, and steps in only when the pair is
-stuck or drifting from the brief. Executing to intent outranks executing the
+The lead stays out of the exchange. It hands each worker the turn brief
+`cct.py` wrote, without changing it, watches for stalls, and steps in only
+when the pair is stuck or drifting from the brief. Executing to intent outranks executing the
 plan.
 
 ## Applicability
@@ -25,6 +28,8 @@ Use it for requests such as:
 
 - "Have a coder and a critic implement retry with backoff for webhook deliveries."
 - "Build this feature with a reviewer pair and report how it went."
+- "Fix every finding of the review on pull request 101 and fit it onto the
+  release branch."
 - An Objective or plan step that needs a careful, reviewed implementation.
 
 Do not use it for:
@@ -75,6 +80,7 @@ loaded this skill from, or in Universal Agents the path
    - non-goals and constraints;
    - how the change fits the larger Objective or plan;
    - the repository, base and work branch;
+   - the pull request, when the work continues one that already exists;
    - the models and effort the workers will actually run with;
    - limits (checkpoints, stall minutes, fix rounds).
 
@@ -83,18 +89,29 @@ loaded this skill from, or in Universal Agents the path
    `cct.py init RUN_DIR --brief brief.json`. This records the brief and copies
    `protocol.md`, `coder.md` and `critic.md` into `RUN_DIR/roles/`.
 
-3. **Start the coder.** Give it its role file, the protocol and the output of
-   `cct.py turn RUN_DIR --for coder`. Start the critic the same way when its
-   first turn comes.
+   When a project review already ran and this run fixes its findings, record
+   it now as a `review_result` with `"stage": "before_run"`. The workers'
+   briefs then list the findings, and each checkpoint names the ones it fixes.
+
+3. **Start the coder.** Run `cct.py turn RUN_DIR --for coder`. It writes the
+   turn brief to `RUN_DIR/turns/coder-brief.md` and prints a short handoff
+   that names the brief and, on a first turn, the role file and the protocol.
+   Give the coder that handoff. Start the critic the same way when its first
+   turn comes.
 
 4. **Relay turns.** After each worker reply:
    1. Record its turn with
       `cct.py post RUN_DIR --actor <role> --file RUN_DIR/turns/<role>-next.json`.
       A worker's file can hold only that worker's turns.
-   2. Read the `Next:` and `Signal:` lines.
-   3. Hand the named worker the output of `cct.py turn RUN_DIR --for <role>`.
-      Pass that brief unchanged. Do not summarise it, add opinions or rank the
-      critiques; that keeps you out of the exchange.
+   2. Read the `Next:`, `Signal:` and `Handoff for the <role>:` lines.
+      `cct.py post` has already written the next worker's brief.
+   3. Pass the handoff to the named worker unchanged. Do not paste the brief,
+      summarise it, add opinions or rank the critiques; that keeps you out of
+      the exchange and keeps each relay to two lines.
+
+   `cct.py turn RUN_DIR --for <role>` writes a brief again and prints its
+   handoff. Add `--full` to print the whole brief for a worker that cannot
+   read the run folder.
 
    The protocol settles the order:
    - plan, review, response, a last word on what was rejected, final call;
@@ -115,23 +132,31 @@ loaded this skill from, or in Universal Agents the path
    | `loop` (a critique raised again and again) | Rule on the root critique and say it is settled. |
    | `stall` | Check that the worker is alive. Start a fresh worker with its role file and turn brief if it died or lost its context (`worker_replaced`). |
    | `tests_failing` or `no_progress` | Ask the coder what blocks it. Unblock the environment, or rule on the design question behind it. |
+   | `checkout_changed` (printed after a critic turn) | The tree was clean at the checkpoint, so the change is the critic's. Restore it and remind the critic that it reads only. |
    | `budget` | Raise the limit with a `limits` turn, narrow the scope within the brief, or stop and close as `needs_attention`. |
    | Plan or code drifting from the intent | Restate the brief and rule (`scope_drift`). |
    | A question the brief cannot answer and that changes the design | Ask the person, then record the answer (`clarification`). |
 
-   Never write the code or the critique yourself. After each critic turn,
-   check `git status`: the tree was clean at the checkpoint, so any change
-   is the critic's. Restore it and remind the critic that it reads only.
+   Never write the code or the critique yourself. An intervention's summary
+   and its `actions` both reach the workers in their next brief; put there
+   what they must do.
 
 6. **Take the pull request.** Check that the pull request exists and its
    checks run. `cct.py` refuses a `pr` turn until the branch is exactly the
    last checkpoint the critic reviewed. Changes after the final review need
-   another final checkpoint first.
+   another final checkpoint first. When the brief names an existing pull
+   request, the coder pushes to it and `cct.py` refuses any other URL.
 
 7. **Run the project review.** Invoke `project-review-process` on the pull
    request, giving it the brief as the stated goal. Record a `review_result`
    with each finding's severity and confidence as the review reported them.
    Set `matches_item` where the critic raised the same problem.
+
+   With a review from before the run on record, re-check each of its
+   findings at the pull request's head instead: read the fix, or run the test
+   or probe that reproduces the finding. Record `fixed` with evidence, or
+   `open` with a note saying what is left. A new review of the pull request
+   is then optional; record it as a second `review_result` when you run one.
 
 8. **Fix blocking findings once.** For open blocking findings:
    1. Record a `fix_request`.
@@ -139,7 +164,7 @@ loaded this skill from, or in Universal Agents the path
       coder pushes and records a `pr` update.
    3. Re-check each finding against its scenario: read the fix, run the test
       that reproduces it, or re-run the reviewer view that found it.
-   4. Record `fixed` with evidence, or `open`.
+   4. Record `fixed` with evidence, or `open` with a note saying what is left.
 
    The brief's `limits.fix_rounds` (default 1) caps the rounds. Instead of a
    fix round, a blocking finding can be recorded as `accepted_risk` when the
@@ -159,11 +184,13 @@ loaded this skill from, or in Universal Agents the path
 
 11. **Report.** Run `cct.py stats RUN_DIR`. Then render:
     - `render_report.py RUN_DIR/stats.json --mode page --out RUN_DIR/report.html`;
-    - in T3 Code, also `--mode t3`.
+    - in T3 Code, also `--mode t3 --out RUN_DIR/report-t3.html`. This is the
+      compact view: every section and chart, with the long texts shortened.
 
     Deliver it as [references/runtimes.md](references/runtimes.md) describes:
-    inline with `html_render` in T3 Code, attached as a file in Universal
-    Agents, or as a file path elsewhere. Give the person three to five lines:
+    inline with `html_render` and the file's path in T3 Code, attached as a
+    file in Universal Agents, or as a file path elsewhere. Show the whole
+    report; never split it or rebuild parts of it by hand. Give the person three to five lines:
     the outcome, the pull request link, what needs their decision, and where
     the report is.
 
@@ -176,6 +203,7 @@ loaded this skill from, or in Universal Agents the path
 | The critic changed the checkout | Restore the change, remind it, record a `note`. |
 | No way to push or open a pull request | Stop before the pull request. Keep the reviewed branch and a `git format-patch` series in the run folder. Record `review_result` with `"ran": false`, a narrative, and `close` as `blocked`. Tell the person what is ready and what is missing. |
 | `project-review-process` is unavailable | Record `review_result` with `"ran": false` and the reason. Do not substitute a different review without saying so. |
+| A finding stays open on purpose | Record it `open` with a note. The report shows the note and does not count it as a gap. `ready_to_merge` still needs a follow-up, an accepted risk or a fix for it. |
 | A blocking finding is still open after the fix round | Close as `needs_attention` or `blocked` and say what is left. Start another round only when the person asks; record a `limits` turn first. |
 | The person changes the goal mid-run | Close the run as `abandoned` with a note. Start a new run with a new brief from the current branch. |
 | The run must stop early | Close at any point: `abandoned`, or `blocked` or `needs_attention` after a narrative. Then still render the report; it shows what was done and what is missing. |
@@ -198,5 +226,6 @@ loaded this skill from, or in Universal Agents the path
 - `scripts/cct.py`: the run ledger. Its commands are `init`, `post`, `state`,
   `turn`, `show` and `stats`.
 - `scripts/render_report.py`: validates `stats.json` and renders it as
-  script-free HTML, with `--mode page` or `--mode t3`.
+  script-free HTML, with `--mode page` or `--mode t3` and, when the default
+  does not fit, `--detail full` or `--detail compact`.
 - `assets/report.css`: the report's design tokens and styles.

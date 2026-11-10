@@ -10,14 +10,17 @@ The reader is the person who asked for the change, deciding whether to merge
 it and what to check first. Give them the answer in thirty seconds and the
 evidence in five minutes. Answer their questions in this order:
 
-1. **Did it work?** Title, the lead's summary, status, acceptance criteria.
+1. **Did it work?** Title, the lead's summary, status, the criteria tally and
+   each review's verdict with its findings by status.
 2. **How big, and how contested?** Six numbers.
 3. **How did it unfold?** The timeline.
-4. **What happened in each exchange?** Rounds, closed until opened.
-5. **What should I double-check?** Critiques not taken in full, and lead rulings.
-6. **Where did the critique land, and what changed?** Lens grid and files.
-7. **What did the independent review find?** Findings with their status.
-8. **What is next?**
+4. **Which criteria hold, on what evidence?** One row each.
+5. **What happened in each exchange?** Rounds, closed until opened.
+6. **What should I double-check?** Critiques not taken in full, and lead rulings.
+7. **Where did the critique land, and what changed?** Lens grid and files.
+8. **What did the independent review find?** Findings with their status and
+   the reason for each one still open.
+9. **What is next?**
 
 ## Principles
 
@@ -25,8 +28,18 @@ evidence in five minutes. Answer their questions in this order:
   `git` and the recorded review. The lead writes only the summary, the next
   steps and the acceptance evidence. The footer says where everything came
   from.
-- **Show the gaps.** Missing review, unchecked criteria or unsettled critiques
-  appear in a box under the verdict. They are never left out silently.
+- **Show the gaps.** Missing review, unchecked criteria, unsettled critiques
+  and findings nobody decided on appear in a box under the verdict. They are
+  never left out silently. A finding left open with a recorded reason is a
+  decision, not a gap: it shows in the findings, open, with its reason.
+- **Charts before lists.** The numbers and the timeline come straight after
+  the summary. A list of more than eight criteria or findings starts as one
+  line per row, with only the rows that need attention open (a criterion not
+  met, a finding still open), so a long run does not push the charts or the
+  rounds out of sight.
+- **One report, shown whole.** The in-thread view is the same report with the
+  long texts shortened, never a selection of sections. It is shown from its
+  file in one call.
 - **Checked input.** `render_report.py` validates every field it reads and
   refuses malformed `stats.json` (`StatsError`), so it can render input it did
   not compute. Every string is escaped; only http(s) links become anchors.
@@ -45,14 +58,14 @@ where T3 Code shows it at about 728 px.
 
 | Order | Section | Content |
 | --- | --- | --- |
-| 1 | Masthead | Kicker (repository, PR, date, objective and plan step), serif title, serif summary, status pill, criteria tally, review verdict, gaps box |
-| 2 | Acceptance criteria | One row each: mark, ID, text, evidence |
-| 3 | Stat strip | Elapsed, critic rounds, critiques (outcome bar), lead interventions, lines changed (kind bar), review findings |
-| 4 | Timeline | Swimlanes Lead, Coder, Critic, Review; phase bands; checkpoint marks; axis |
-| 5 | Rounds | One row per round: label and time, what the coder did, size and tests, one glyph per critique; opens into the coder and critic sides |
-| 6 | Decisions to check | Critique, coder, last word, final call, lead ruling; flag when the review raised it again |
+| 1 | Masthead | Kicker (repository, PR, date, objective and plan step), serif title, serif summary, status pill, criteria tally, each review's verdict and findings by status, gaps box |
+| 2 | Stat strip | Elapsed, critic rounds, critiques (outcome bar), lead interventions, lines changed (kind bar), review findings (status bar) |
+| 3 | Timeline | Swimlanes Lead, Coder, Critic, Review; phase bands; checkpoint marks; axis |
+| 4 | Acceptance criteria | One row each: mark, ID, text; opens to the evidence |
+| 5 | Rounds | One row per round: label and time, what the coder did, size and tests, the findings it fixes, one glyph per critique; opens into the coder and critic sides. Lead interventions outside a round follow the list |
+| 6 | Decisions to check | Critique, coder, last word, final call, lead ruling; flag when a review raised the same problem |
 | 7 | Two columns | Lens × round grid; what changed (bar and top 8 files) |
-| 8 | Project review | Verdict, reviewers, findings by severity with status and links |
+| 8 | Reviews | One section per review, an earlier review first: verdict, reviewers, status bar, then findings by severity and number. Each opens to its place, scenario, check or note, the checkpoint that addressed it and a matching critique |
 | 9 | Next steps | Ordered list |
 | 10 | Footer | Provenance: ledger events, diff range, worker models and effort, test source, time generated |
 
@@ -114,8 +127,13 @@ Spacing and shape: 32 px between sections, hairline rules between rows, an
 - **Lines changed:** neutral steps, never the worker colours. Source ink,
   tests secondary ink, docs and other hairline.
 - **Timeline:** each span is the time before a recorded turn, credited to
-  whoever produced it. The review lane covers the project review and the
-  follow-up handling.
+  whoever produced it. The review lane is the project review of the pull
+  request. Re-checking findings, filing follow-ups and closing are the lead's
+  time. A review from before the run is not on the timeline; the last phase
+  is then "Re-check" instead of "Review".
+- **Findings bar:** one segment per status group. Good for fixed, bad for
+  open, secondary ink for follow-ups (issue filed or proposed), hairline for
+  accepted risk and won't fix. The legend gives each count in words.
 - **Status pill:** good ready to merge, warning needs attention, bad blocked,
   secondary ink abandoned or in progress.
 
@@ -127,6 +145,16 @@ Spacing and shape: 32 px between sections, hairline rules between rows, an
 - **`page`:** uses its own palette, follows the system light or dark setting,
   and sets the page background. Use it for every file a person opens or
   receives.
+
+Each mode has a default level of detail, which `--detail` overrides:
+
+- **`full`** (page): every critique, exchange, criterion and finding in full.
+- **`compact`** (t3): the same sections, charts, glyphs and rows. Long texts
+  are cut at a word with an ellipsis: a round opens to one line per critique
+  with its outcome instead of the whole exchange. Rows that need attention
+  keep their full text. The footer says the page has the rest. A run of 13
+  rounds, 27 criteria and 25 findings comes to about 100 KB compact and
+  170 KB full.
 
 ## Writing
 
@@ -147,4 +175,8 @@ label.
 Edit `assets/report.css` and `scripts/render_report.py` together and keep this
 file in step. Run `python -m unittest tests.test_coder_critic_team`. Then
 render the sample run in both modes and look at it at 728 px and 1100 px, in
-light and dark, before shipping.
+light and dark, before shipping. Check a long run too (more than eight
+criteria and findings), where the lists start closed.
+
+`render_report.py` reads statistics of schema 2 and still reads schema 1,
+which had one `review` holding its findings.

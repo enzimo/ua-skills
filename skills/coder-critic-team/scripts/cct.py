@@ -8,7 +8,7 @@ work report shows. Standard library only; Python 3.9 or newer.
     cct.py init  RUN_DIR --brief BRIEF.json
     cct.py post  RUN_DIR --actor coder|critic|lead --file TURN.json
     cct.py state RUN_DIR [--json]
-    cct.py turn  RUN_DIR --for coder|critic
+    cct.py turn  RUN_DIR --for coder|critic [--full]
     cct.py show  RUN_DIR (--item C03 | --event 12 | --items)
     cct.py stats RUN_DIR [--out stats.json]
 """
@@ -32,7 +32,7 @@ try:  # POSIX lock; the lead is the only writer, the lock guards accidents.
 except ImportError:  # pragma: no cover - non-POSIX hosts
     fcntl = None
 
-SCHEMA = 1
+SCHEMA = 2
 SKILL_DIR = Path(__file__).resolve().parent.parent
 LEDGER = "ledger.jsonl"
 
@@ -54,6 +54,7 @@ CONFIDENCE = ["verified", "likely", "possible"]
 DECISIONS = ["accept", "partial", "reject"]
 POSITIONS = ["withdraw", "maintain", "amend"]
 REVIEW_VERDICTS = ["approve", "approve_with_changes", "needs_rework", "goal_unclear"]
+REVIEW_STAGES = ["after_pr", "before_run"]
 FINDING_STATUS = ["open", "fixed", "issue_filed", "proposed", "accepted_risk", "wont_fix"]
 CRITERION_STATUS = ["met", "partial", "unmet", "unverified"]
 OUTCOMES = ["ready_to_merge", "needs_attention", "blocked", "abandoned"]
@@ -196,6 +197,19 @@ def one_of(value: Any, allowed: List[str], where: str) -> str:
     return value
 
 
+def id_order(value: str) -> Tuple[str, int]:
+    """Sort C2 before C10 and F2 before F10."""
+    match = re.match(r"([A-Za-z]*)(\d+)", value)
+    return (match.group(1), int(match.group(2))) if match else (value, 0)
+
+
+def web_link(obj: Dict[str, Any], key: str, where: str) -> str:
+    value = need(obj, key, where).strip()
+    if not re.match(r"https?://\S+$", value):
+        raise CctError(f"{where}: '{key}' must be an http(s) link")
+    return value
+
+
 def span(ids: List[str]) -> str:
     if not ids:
         return "none"
@@ -255,7 +269,7 @@ class Run:
         self.fix_rounds = 0
         self.in_fix = False
         self.pr: Optional[Dict[str, Any]] = None
-        self.review: Optional[Dict[str, Any]] = None
+        self.reviews: List[Dict[str, Any]] = []
         self.acceptance: Optional[Dict[str, Any]] = None
         self.narrative: Optional[Dict[str, Any]] = None
         self.closed: Optional[Dict[str, Any]] = None
@@ -281,6 +295,8 @@ class Run:
         elif kind == "checkpoint":
             self.checkpoints.append(event)
             self.pending_review = rkey
+            for fid in data.get("addresses", []):
+                self.findings[fid].setdefault("addressed_in", []).append(rkey)
         elif kind == "review":
             self.pending_review = None
             for item in data["items"]:
@@ -332,9 +348,10 @@ class Run:
             else:
                 self.pr = {**data, "seq": event["seq"]}
         elif kind == "review_result":
-            self.review = data
+            stage = data.get("stage", "after_pr")
+            self.reviews.append({**data, "stage": stage, "seq": event["seq"]})
             for finding in data.get("findings", []):
-                self.findings[finding["id"]] = {**finding, "status": "open"}
+                self.findings[finding["id"]] = {**finding, "status": "open", "stage": stage}
         elif kind == "fix_request":
             self.fix_rounds += 1
             self.in_fix = True
@@ -344,7 +361,12 @@ class Run:
         elif kind == "finding_update":
             for upd in data["updates"]:
                 finding = self.findings[upd["finding"]]
+                # Each update replaces the last one's reason, so no stale note
+                # or evidence stays next to a new status.
+                for key in ("note", "evidence", "issue_url"):
+                    finding.pop(key, None)
                 finding.update({k: v for k, v in upd.items() if k != "finding"})
+                finding["update_seq"] = event["seq"]
                 if self.in_fix and finding.get("fix_round") == self.fix_rounds:
                     finding["rechecked"] = True
             if self.in_fix and not self.unchecked_fix_findings():
@@ -397,6 +419,24 @@ class Run:
         return [fid for fid, f in self.findings.items()
                 if f["severity"] == "blocking" and f["status"] == "open"]
 
+    def review_at(self, stage: str) -> Optional[Dict[str, Any]]:
+        return next((r for r in self.reviews if r["stage"] == stage), None)
+
+    def review_ran(self) -> bool:
+        return any(r.get("ran") for r in self.reviews)
+
+    def not_rechecked(self) -> List[str]:
+        """Findings of a review from before the run that nobody checked at the pull request's head."""
+        if not self.pr:
+            return []
+        return [fid for fid, f in self.findings.items()
+                if f.get("stage") == "before_run" and f.get("update_seq", 0) < self.pr["seq"]]
+
+    def undecided(self) -> List[str]:
+        """Open findings with no recorded reason: nobody has said what happens to them."""
+        return [fid for fid, f in self.findings.items()
+                if f["status"] == "open" and not f.get("note")]
+
     # Whose move is it? Every entry is a valid next turn; open critiques first.
     def expectations(self) -> List[Dict[str, Any]]:
         if self.closed:
@@ -438,16 +478,24 @@ class Run:
             return [{"actor": "coder", "type": "checkpoint", "round": self.checkpoint_round(True),
                      "why": "only if you changed code after the final review"},
                     {"actor": "coder", "type": "pr"}]
-        if not self.review:
+        if not self.reviews:
             return [{"actor": "lead", "type": "review_result",
                      "why": "run project-review-process on the pull request"}]
         todo = []
-        blocking = self.blocking_open()
+        stale = self.not_rechecked()
+        if stale:
+            todo.append({"actor": "lead", "type": "finding_update", "items": stale,
+                         "why": "re-check each earlier finding at the pull request's head: "
+                                "fixed with evidence, or open with a note"})
+        if not self.review_at("after_pr"):
+            todo.append({"actor": "lead", "type": "review_result",
+                         "why": "optional: a new project-review-process review of the pull request"})
+        blocking = [fid for fid in self.blocking_open() if fid not in stale]
         if blocking and self.fix_rounds < int(self.limit("fix_rounds", 1)):
             todo.append({"actor": "lead", "type": "fix_request", "items": blocking,
                          "why": "or record them as accepted_risk, or close as blocked"})
-        unfiled = [fid for fid, f in self.findings.items()
-                   if f["severity"] != "blocking" and f["status"] == "open"]
+        unfiled = [fid for fid in self.undecided()
+                   if self.findings[fid]["severity"] != "blocking" and fid not in stale]
         if unfiled:
             todo.append({"actor": "lead", "type": "finding_update", "items": unfiled,
                          "why": "file or propose follow-ups for non-blocking findings"})
@@ -645,6 +693,12 @@ def check_turn(run: Run, turn: Dict[str, Any], actor: str
                 need(tests, key, f"{where} tests", int)
         data["tests"] = tests
         data["deviations"] = list_of(turn, "deviations", where, str, required=False)
+        addresses = list_of(turn, "addresses", where, str, required=False)
+        for fid in addresses:
+            if fid not in run.findings:
+                raise CctError(f"{where}: 'addresses' names unknown finding {fid}")
+        if addresses:
+            data["addresses"] = sorted(set(addresses), key=id_order)
         data["git"] = checkpoint_git(run, rnd)
 
     elif kind == "pr":
@@ -655,6 +709,13 @@ def check_turn(run: Run, turn: Dict[str, Any], actor: str
                                            "there is no pull request to update yet"))
         if not update:
             data["url"] = need(turn, "url", where)
+            existing = run.brief.get("pull_request")
+            if existing:
+                if data["url"].strip().rstrip("/") != existing["url"].rstrip("/"):
+                    raise CctError(f"{where}: the brief names the existing pull request "
+                                   f"{existing['url']}; push to that one and record it, do not "
+                                   "open another")
+                data["existing"] = True
         for key in ("url", "title"):
             if key in turn:
                 data[key] = text_of(turn, key, where)
@@ -720,11 +781,21 @@ def check_turn(run: Run, turn: Dict[str, Any], actor: str
         ran = turn.get("ran", True)
         if not isinstance(ran, bool):
             raise CctError(f"{where}: 'ran' must be true or false")
-        if run.review:
-            raise CctError(f"{where}: the review result is already recorded")
-        if ran and not expected:
-            raise CctError(f"{where}: record a review that ran once the pull request is open")
+        stage = one_of(turn.get("stage", "after_pr"), REVIEW_STAGES, f"{where} stage")
+        if run.review_at(stage):
+            raise CctError(f"{where}: the review result is already recorded"
+                           + (" for a review from before the run" if stage == "before_run" else ""))
+        if stage == "before_run":
+            if not ran:
+                raise CctError(f"{where}: record a review from before the run only when it ran")
+            if run.pr:
+                raise CctError(f"{where}: a review from before the run is recorded before the pull "
+                               "request turn; record this one without 'stage'")
+        elif ran and not run.pr:
+            raise CctError(f"{where}: record a review that ran once the pull request is open; for a "
+                           "review that ran before this run, add \"stage\": \"before_run\"")
         data["ran"] = ran
+        data["stage"] = stage
         if not ran:
             data["reason"] = need(turn, "reason", where)
             data["findings"] = []
@@ -733,11 +804,15 @@ def check_turn(run: Run, turn: Dict[str, Any], actor: str
             data["guide"] = text_of(turn, "guide", where) or "pull-requests"
             data["reviewers"] = list_of(turn, "reviewers", where, str, nonempty=True)
             data["skipped"] = list_of(turn, "skipped", where, str, required=False)
+            for key in ("head_sha", "source"):
+                if turn.get(key):
+                    data[key] = text_of(turn, key, where)
             findings = []
+            base = len(run.findings)
             for n, f in enumerate(list_of(turn, "findings", where, dict, required=False), 1):
                 fw = f"{where} finding {n}"
                 entry = {
-                    "id": f"F{n}",
+                    "id": f"F{base + n}",
                     "severity": one_of(need(f, "severity", fw), SEVERITIES, fw),
                     "confidence": one_of(f.get("confidence", "likely"), CONFIDENCE, fw),
                     "title": need(f, "title", fw),
@@ -745,6 +820,8 @@ def check_turn(run: Run, turn: Dict[str, Any], actor: str
                     "scenario": text_of(f, "scenario", fw),
                     "direction": text_of(f, "direction", fw),
                 }
+                if f.get("ref"):
+                    entry["ref"] = text_of(f, "ref", fw)
                 if f.get("matches_item"):
                     if f["matches_item"] not in run.items:
                         raise CctError(f"{fw}: matches unknown item {f['matches_item']}")
@@ -756,8 +833,11 @@ def check_turn(run: Run, turn: Dict[str, Any], actor: str
 
     elif kind == "fix_request":
         ids = list_of(turn, "findings", where, str, nonempty=True)
-        if not run.review or not run.review.get("ran"):
+        if not run.review_ran():
             raise CctError(f"{where}: record the project review first")
+        if not run.pr:
+            raise CctError(f"{where}: a fix round starts after the pull request turn; until then "
+                           "the findings of an earlier review are part of the brief")
         if run.in_fix:
             raise CctError(f"{where}: fix round {run.fix_rounds} is still open")
         if run.items_where(lambda i: i["state"] not in DONE) or run.pending_review:
@@ -781,13 +861,20 @@ def check_turn(run: Run, turn: Dict[str, Any], actor: str
                 raise CctError(f"{uw}: unknown finding")
             one_of(need(upd, "status", uw), FINDING_STATUS, uw)
             if upd["status"] == "issue_filed":
-                need(upd, "issue_url", uw)
+                web_link(upd, "issue_url", uw)
             if upd["status"] == "fixed":
                 need(upd, "evidence", uw)
             if upd["status"] in ("accepted_risk", "wont_fix", "proposed"):
                 need(upd, "note", uw)
-        data["updates"] = [{k: u[k] for k in ("finding", "status", "issue_url", "evidence", "note")
-                            if k in u} for u in updates]
+            if upd["status"] == "open" and not str(upd.get("note") or "").strip():
+                raise CctError(f"{uw}: 'note' is required for open: say what is left and why it "
+                               "stays open")
+            for key in ("issue_url", "evidence", "note"):
+                text_of(upd, key, uw)
+            if upd.get("matches_item") and upd["matches_item"] not in run.items:
+                raise CctError(f"{uw}: matches unknown item {upd['matches_item']}")
+        data["updates"] = [{k: u[k] for k in ("finding", "status", "issue_url", "evidence", "note",
+                                               "matches_item") if u.get(k)} for u in updates]
 
     elif kind == "acceptance":
         criteria = list_of(turn, "criteria", where, dict)
@@ -824,17 +911,22 @@ def check_close(run: Run, outcome: str, where: str) -> None:
     problems = []
     if not run.pr:
         problems.append("there is no pull request")
-    if not run.review or not run.review.get("ran"):
+    if not run.review_ran():
         problems.append("the project review has not run")
+    stale = run.not_rechecked()
+    if stale:
+        problems.append(f"{span(stale)} were not re-checked at the pull request's head")
     if run.items_where(lambda i: i["state"] not in DONE):
         problems.append("some critiques are not settled")
     stuck = [fid for fid, f in run.findings.items()
              if f["severity"] == "blocking" and f["status"] not in ("fixed", "accepted_risk")]
     if stuck:
         problems.append(f"{', '.join(stuck)} still block the merge")
-    unfiled = [fid for fid, f in run.findings.items() if f["status"] == "open"]
-    if unfiled:
-        problems.append(f"{', '.join(unfiled)} have no follow-up recorded")
+    still_open = [fid for fid, f in run.findings.items()
+                  if f["status"] == "open" and f["severity"] != "blocking"]
+    if still_open:
+        problems.append(f"{', '.join(still_open)} are still open (file or propose a follow-up, or "
+                        "record accepted_risk or wont_fix)")
     if not run.acceptance:
         problems.append("the acceptance criteria are not checked")
     elif any(c["status"] == "unmet" for c in run.acceptance["criteria"]):
@@ -918,6 +1010,12 @@ def cmd_init(args: argparse.Namespace) -> None:
         raise CctError("brief: 'limits' must be a JSON object")
     for key in limits:
         one_of(key, LIMIT_KEYS, "brief.limits")
+    if brief.get("pull_request") is not None:
+        existing = need(brief, "pull_request", where, dict)
+        entry = {"url": web_link(existing, "url", "brief.pull_request")}
+        if existing.get("number") is not None:
+            entry["number"] = need(existing, "number", "brief.pull_request", int)
+        brief["pull_request"] = entry
     brief.setdefault("follow_up_issues", "file")
     one_of(brief["follow_up_issues"], ["file", "propose"], "brief.follow_up_issues")
     if run_dir.exists() and any(run_dir.iterdir()):
@@ -952,10 +1050,18 @@ def brief_markdown(brief: Dict[str, Any]) -> str:
     lines += ["## Repository", "",
               f"- Checkout: `{repo['path']}`",
               f"- Base: `{repo['base']}` ({repo['base_sha'][:10]})",
-              f"- Work branch: `{repo['branch']}`", ""]
+              f"- Work branch: `{repo['branch']}`"]
+    if brief.get("pull_request"):
+        lines.append(f"- Pull request: {pr_name(brief['pull_request'])} already exists. Push to it; "
+                     "do not open another")
+    lines.append("")
     lenses = CORE_LENSES + brief.get("extra_lenses", [])
     lines += ["## Review lenses", "", ", ".join(LENS_LABELS[l] for l in lenses), ""]
     return "\n".join(lines)
+
+
+def pr_name(pr: Dict[str, Any]) -> str:
+    return (f"#{pr['number']} ({pr['url']})" if pr.get("number") else pr["url"])
 
 
 def cmd_post(args: argparse.Namespace) -> None:
@@ -996,6 +1102,19 @@ def cmd_post(args: argparse.Namespace) -> None:
     if source and source.parent == run.dir / "turns" and source.name.endswith("-next.json"):
         source.unlink()
     print_next(run)
+    if args.actor == "critic":
+        # The tree was clean at the checkpoint, so a change now is the critic's.
+        # The turn is already recorded; a checkout that cannot be read is not
+        # a refusal.
+        try:
+            problem = worktree_problem(run.brief["repo"]["path"])
+        except CctError as exc:
+            problem = ""
+            print(f"Warning: could not check the checkout after the critic's turn ({exc})")
+        if problem:
+            print("Signal: checkout_changed — the checkout changed during the critic's turn "
+                  f"({problem}); restore it and remind the critic that it reads only")
+    print_handoffs(run)
 
 
 def describe(event: Dict[str, Any]) -> str:
@@ -1015,8 +1134,9 @@ def describe(event: Dict[str, Any]) -> str:
     if kind == "checkpoint":
         g = data["git"]
         warn = f" WARNING: {g['warning']}" if g.get("warning") else ""
+        fixes = f", names {span(data['addresses'])}" if data.get("addresses") else ""
         return (f"{head}: {data['title']} — {g['commits']} commit(s), +{g['adds']} −{g['dels']}, "
-                f"diff at {g['patch']}{warn}")
+                f"diff at {g['patch']}{fixes}{warn}")
     if kind == "pr":
         warn = f" WARNING: {data['warning']}" if data.get("warning") else ""
         return f"{head}: {data.get('url', 'update')} at {data['head_sha'][:10]}{warn}"
@@ -1024,7 +1144,10 @@ def describe(event: Dict[str, Any]) -> str:
         if not data["ran"]:
             return f"{head}: not run — {data['reason']}"
         sev = {s: sum(1 for f in data["findings"] if f["severity"] == s) for s in SEVERITIES}
-        return f"{head}: {data['verdict']}, " + ", ".join(f"{n} {s}" for s, n in sev.items())
+        when = " (before the run)" if data.get("stage") == "before_run" else ""
+        ids = [f["id"] for f in data["findings"]]
+        return (f"{head}{when}: {data['verdict']}, " + ", ".join(f"{n} {s}" for s, n in sev.items())
+                + (f"; findings {span(ids)}" if ids else ""))
     return head
 
 
@@ -1044,6 +1167,15 @@ def print_next(run: Run) -> None:
         print("Next: " + " — ".join(bits))
     for s in run.signals():
         print(f"Signal: {s['signal']} — {s['detail']}")
+
+
+def print_handoffs(run: Run) -> None:
+    """Write the brief for each worker whose turn it is and print what to hand over."""
+    for role in ("coder", "critic"):
+        # Rewrite both, so a worker that is not up never finds a stale brief.
+        path = write_brief(run, role)
+        if any(e["actor"] == role for e in run.expectations()):
+            print(f"Handoff for the {role} (pass it unchanged): {handoff(run, role, path)}")
 
 
 def cmd_state(args: argparse.Namespace) -> None:
@@ -1108,9 +1240,8 @@ def settled_line(item: Dict[str, Any]) -> str:
             f"{item['title']}")
 
 
-def cmd_turn(args: argparse.Namespace) -> None:
-    run = Run(Path(args.run_dir))
-    role = args.for_
+def build_brief(run: Run, role: str) -> str:
+    """Everything one worker needs for its next turn, as Markdown."""
     mine = [e for e in run.expectations() if e["actor"] == role]
     repo = run.brief["repo"]
     out = [f"# Turn brief for the {role}: {run.brief['title']}", "",
@@ -1123,8 +1254,7 @@ def cmd_turn(args: argparse.Namespace) -> None:
     if not mine:
         others = "; ".join(f"{e['actor']} {e['type']}" for e in run.expectations()) or "nothing"
         out += ["## Nothing is waiting for you", "", f"Waiting for: {others}."]
-        print("\n".join(out))
-        return
+        return "\n".join(out) + "\n"
     out += ["## Do now", ""]
     if len(mine) > 1:
         out += ["Do one of these:", ""]
@@ -1135,18 +1265,60 @@ def cmd_turn(args: argparse.Namespace) -> None:
             f"Write your turn as JSON to `{run.dir / 'turns' / (role + '-next.json')}` "
             "(see the protocol for its fields) and reply with that path and one line "
             "saying what you did. Do not paste the JSON into your reply."]
-    print("\n".join(out))
+    return "\n".join(out) + "\n"
+
+
+def write_brief(run: Run, role: str) -> Path:
+    path = run.dir / "turns" / f"{role}-brief.md"
+    path.write_text(build_brief(run, role), encoding="utf-8")
+    return path
+
+
+TURN_WORDS = {"plan": "write the plan", "review": "review", "response": "decide on the critiques",
+              "final_call": "make the final call", "rebuttal": "give your last word",
+              "checkpoint": "build to the next checkpoint", "pr": "push to the pull request"}
+
+
+def handoff(run: Run, role: str, path: Path) -> str:
+    """The short message the lead passes on; the brief itself stays in the file."""
+    mine = [e for e in run.expectations() if e["actor"] == role]
+    what = " or ".join(dict.fromkeys(
+        TURN_WORDS[e["type"]] + (f" ({round_label(e['round']).lower()})"
+                                 if e["type"] == "review" else "") for e in mine))
+    first = not any(e["actor"] == role for e in run.events)
+    start = (f"Read your role `{run.dir / 'roles' / (role + '.md')}` and the protocol "
+             f"`{run.dir / 'roles' / 'protocol.md'}` first. " if first else "")
+    return (f"Your next turn in the coder-critic run is ready: {what}. {start}"
+            f"Read the turn brief `{path}` and do what it says. Reply with the path of your "
+            "turn file and one line.")
+
+
+def cmd_turn(args: argparse.Namespace) -> None:
+    run = Run(Path(args.run_dir))
+    role = args.for_
+    if args.full:
+        print(build_brief(run, role), end="")
+        return
+    path = write_brief(run, role)
+    if not any(e["actor"] == role for e in run.expectations()):
+        others = "; ".join(f"{e['actor']} {e['type']}" for e in run.expectations()) or "nothing"
+        print(f"Nothing is waiting for the {role}. Waiting for: {others}.")
+        return
+    print(f"Brief written: {path} ({path.stat().st_size / 1024:.1f} KB)")
+    print(f"Handoff for the {role} (pass it unchanged): {handoff(run, role, path)}")
 
 
 def turn_section(run: Run, role: str, e: Dict[str, Any]) -> List[str]:
     t = e["type"]
     if t == "plan":
-        return ["Explore the checkout, then write the plan: the units (functions, classes, "
-                "modules) to create or change, why, and how the plan handles every lens. "
-                "Do not write code yet. Propose the checkpoints.", ""]
+        lines = ["Explore the checkout, then write the plan: the units (functions, classes, "
+                 "modules) to create or change, why, and how the plan handles every lens. "
+                 "Do not write code yet. Propose the checkpoints.", ""]
+        return lines + findings_to_fix(run, role, full=True)
     if t == "review" and e["round"] == "plan":
         d = next(x for x in reversed(run.events) if x["type"] == "plan")["data"]
-        return (["Review the coder's plan before any code is written.", ""] + plan_lines(run, d))
+        return (["Review the coder's plan before any code is written.", ""] + plan_lines(run, d)
+                + findings_to_fix(run, role, full=True))
     if t == "review":
         cp = run.checkpoints[-1]
         d, g = cp["data"], cp["data"]["git"]
@@ -1170,6 +1342,10 @@ def turn_section(run: Run, role: str, e: Dict[str, Any]) -> List[str]:
         if e["round"].startswith("fix"):
             lines += ["", "This round fixes these project-review findings:"]
             lines += [finding_line(run.findings[f]) for f in fix_findings(run)]
+        elif d.get("addresses"):
+            lines += ["", "The coder says this checkpoint fixes these review findings. Check each "
+                          "fix against the finding's scenario:"]
+            lines += [finding_line(run.findings[f]) for f in d["addresses"]]
         return lines + [""]
     if t == "response":
         rnd = run.items[e["items"][0]]["round"]
@@ -1203,13 +1379,21 @@ def turn_section(run: Run, role: str, e: Dict[str, Any]) -> List[str]:
         if e.get("why", "").startswith("only if"):
             return ["If you changed code since the critic's last review, commit it and record a "
                     "checkpoint so the critic reviews it.", ""]
-        return ["Build to your next checkpoint: commit, run the relevant tests, and record a "
-                "checkpoint with what you did, the test counts and any deviation from the plan. "
-                "Mark the last checkpoint before the pull request with \"final\": true.", ""]
+        lines = ["Build to your next checkpoint: commit, run the relevant tests, and record a "
+                 "checkpoint with what you did, the test counts and any deviation from the plan. "
+                 "Mark the last checkpoint before the pull request with \"final\": true.", ""]
+        return lines + findings_to_fix(run, role, full=False)
     if t == "pr":
         if e.get("update"):
             return ["Push the reviewed fix commits to the pull request branch and record a pr "
                     "turn with \"update\": true.", ""]
+        existing = run.brief.get("pull_request")
+        if existing:
+            return [f"Pull request {pr_name(existing)} already exists. Push the branch to it "
+                    "without force. Do not open another pull request, and leave its draft or "
+                    "ready state as it is. Bring its description, base and labels up to date "
+                    "where the brief asks for that, then record a pr turn with its URL"
+                    + (" and number." if existing.get("number") else "."), ""]
         return ["Push the branch and open the pull request as a draft (unless the brief says "
                 "otherwise); record a pr turn with its URL and number.", ""]
     return [t, ""]
@@ -1222,10 +1406,16 @@ def context_sections(run: Run, role: str, mine: List[Dict[str, Any]]) -> List[st
     settled = [i for i in run.items.values() if i["state"] in DONE and i["id"] not in asked]
     if role == "coder" and any(e["type"] in ("checkpoint", "pr") for e in mine):
         plan = next((x for x in reversed(run.events) if x["type"] == "plan"), None)
-        if plan:
-            done = ", ".join(c["data"]["title"] for c in run.checkpoints) or "none yet"
-            out += ["## The plan", ""] + plan_lines(run, plan["data"], short=True)
-            out += [f"Checkpoints recorded so far: {done}.", ""]
+        if plan and any(e["type"] == "checkpoint" for e in mine):
+            # The coder wrote the plan; point to it instead of repeating it every turn.
+            d = plan["data"]
+            full = d.get("plan_file") or f"turns/{plan['seq']:04d}-coder-plan.json"
+            out += ["## The plan", "", f"Your plan is in `{run.dir / full}`.", "",
+                    "Planned checkpoints:"] + [f"- {c}" for c in d["checkpoints"]] + [""]
+            out += ["Recorded so far:"]
+            out += [f"- {round_label(c['round'])}: {c['data']['title']}"
+                    for c in run.checkpoints] or ["- none yet"]
+            out.append("")
         last = run.last_review_items()
         to_apply = [run.items[i] for i in last if run.items[i]["state"] in ("accepted", "partial")]
         if to_apply:
@@ -1241,10 +1431,14 @@ def context_sections(run: Run, role: str, mine: List[Dict[str, Any]]) -> List[st
         for e in news:
             out += news_lines(e)
         out.append("")
-    if settled:
-        out += ["## Settled critiques" + (" (do not raise again without new evidence)"
-                                          if role == "critic" else ""), ""]
+    if settled and role == "critic":
+        out += ["## Settled critiques (do not raise again without new evidence)", ""]
         out += [settled_line(i) for i in settled] + [""]
+    elif settled:
+        # The coder decided these itself; the count and the command are enough.
+        out += ["## Settled critiques", "",
+                f"{len(settled)} settled ({span([i['id'] for i in settled])}). Their text is in "
+                f"the critic's review files in `{run.dir / 'turns'}`.", ""]
     return out
 
 
@@ -1257,6 +1451,30 @@ def plan_lines(run: Run, d: Dict[str, Any], short: bool = False) -> List[str]:
         lines += ["How the plan handles each lens:"]
         lines += [f"- {LENS_LABELS[k]}: {v}" for k, v in d["lenses"].items()] + [""]
     lines += ["Planned checkpoints:"] + [f"- {c}" for c in d["checkpoints"]] + [""]
+    return lines
+
+
+def findings_to_fix(run: Run, role: str, full: bool) -> List[str]:
+    """The findings of a review that ran before this run, which the run is to fix."""
+    prior = [f for f in run.findings.values() if f.get("stage") == "before_run"]
+    if not prior:
+        return []
+    review = run.review_at("before_run") or {}
+    todo = [f for f in prior if not f.get("addressed_in")]
+    lines = ["## Review findings this run fixes", ""]
+    if review.get("report_file"):
+        lines += [f"The review's report: `{run.dir / review['report_file']}`.", ""]
+    if full:
+        lines += [finding_line(f) for f in prior] + [""]
+    else:
+        done = [f["id"] for f in prior if f.get("addressed_in")]
+        lines += [f"No checkpoint has named these yet: {', '.join(f['id'] for f in todo) or 'none'}."
+                  + (f" Named so far: {span(done)}." if done else ""), ""]
+        lines += [f"- {f['id']} {f['title']}" for f in todo] + ([""] if todo else [])
+    if role == "coder":
+        lines += ["In each checkpoint turn, list the findings it fixes in \"addresses\" "
+                  "(for example [\"F2\", \"F3\"]); the critic checks each fix against the "
+                  "finding.", ""]
     return lines
 
 
@@ -1278,7 +1496,8 @@ def tests_text(tests: Dict[str, Any]) -> str:
 
 
 def finding_line(f: Dict[str, Any]) -> str:
-    line = f"- **{f['id']}** [{f['severity'].replace('_', ' ')} · {f['confidence']}] {f['title']}"
+    ref = f" ({f['ref']})" if f.get("ref") else ""
+    line = f"- **{f['id']}**{ref} [{f['severity'].replace('_', ' ')} · {f['confidence']}] {f['title']}"
     if f.get("where"):
         line += f" (at `{f['where']}`)"
     for key in ("scenario", "direction"):
@@ -1301,6 +1520,7 @@ def news_lines(e: Dict[str, Any]) -> List[str]:
     if e["type"] == "intervention":
         lines = [f"- Lead stepped in ({d['reason'].replace('_', ' ')}): {d['summary']}"]
         lines += [f"  Ruling on {r['item']}: {r['decision']} — {r['rationale']}" for r in d["rulings"]]
+        lines += [f"  - {a}" for a in d.get("actions", [])]
         return lines
     if e["type"] == "review":
         ids = [i["id"] for i in d["items"]]
@@ -1396,7 +1616,7 @@ def compute_stats(run: Run) -> Dict[str, Any]:
         elif cp:
             coder = {"kind": "checkpoint", "title": cp["data"]["title"], "notes": cp["data"]["notes"],
                      "tests": cp["data"]["tests"], "deviations": cp["data"]["deviations"],
-                     "git": cp["data"]["git"]}
+                     "addresses": cp["data"].get("addresses", []), "git": cp["data"]["git"]}
         rounds_out.append({
             "key": rnd["key"], "label": round_label(rnd["key"]),
             "start_min": rel(prev_ts), "end_min": rel(evs[-1]["ts"]),
@@ -1416,20 +1636,37 @@ def compute_stats(run: Run) -> Dict[str, Any]:
         entry["first_decision"] = first["decision"] if first else None
         entry["outcome"] = final_of(i)
         entry["matched_by_review"] = [f["id"] for f in run.findings.values()
-                                      if f.get("matches_item") == i["id"]]
+                                      if f.get("matches_item") == i["id"]
+                                      and f.get("stage") != "before_run"]
+        entry["relates_to_findings"] = [f["id"] for f in run.findings.values()
+                                        if f.get("matches_item") == i["id"]
+                                        and f.get("stage") == "before_run"]
         item_list.append(entry)
 
     spans, marks = timeline(run, rel)
     last_cp = run.checkpoints[-1]["data"]["tests"] if run.checkpoints else None
-    review = run.review
-    findings = list(run.findings.values())
-    if not review:
+    findings = [{k: v for k, v in f.items() if k not in ("update_seq", "rechecked")}
+                for f in run.findings.values()]
+    reviews_out = []
+    for r in run.reviews:
+        mine = [f for f in findings if f["stage"] == r["stage"]]
+        reviews_out.append({
+            **{k: v for k, v in r.items() if k not in ("findings", "seq")},
+            "at_min": rel(next(e["ts"] for e in events if e["seq"] == r["seq"])),
+            "findings": [f["id"] for f in mine],
+            "by_severity": {s: sum(1 for f in mine if f["severity"] == s) for s in SEVERITIES},
+            "by_status": {st: sum(1 for f in mine if f["status"] == st) for st in FINDING_STATUS},
+        })
+    if not run.reviews:
         warnings.append("project review has not been recorded")
-    elif not review["ran"]:
-        warnings.append(f"project review did not run: {review['reason']}")
-    open_findings = [f["id"] for f in findings if f["status"] == "open"]
-    if open_findings:
-        warnings.append(f"finding(s) {', '.join(open_findings)} have no follow-up recorded")
+    for r in run.reviews:
+        if not r["ran"]:
+            warnings.append(f"project review did not run: {r['reason']}")
+    if run.undecided():
+        warnings.append(f"finding(s) {', '.join(run.undecided())} have no follow-up recorded")
+    if run.not_rechecked():
+        warnings.append(f"finding(s) {span(run.not_rechecked())} from the earlier review were not "
+                        "re-checked at the pull request's head")
     criteria = {c["id"]: c for c in (run.acceptance or {}).get("criteria", [])}
     acceptance = [{**c, **({k: criteria[c["id"]][k] for k in ("status", "evidence")}
                            if c["id"] in criteria else {"status": "unverified", "evidence": ""})}
@@ -1459,6 +1696,8 @@ def compute_stats(run: Run) -> Dict[str, Any]:
             "worker_turns": sum(1 for e in events if e["actor"] in ("coder", "critic")),
             "interventions": len(run.interventions),
             "fix_rounds": run.fix_rounds,
+            "findings": len(findings),
+            "findings_matched": sum(1 for f in findings if f.get("matches_item")),
         },
         "items": {
             "total": len(items), "by_decision": by_decision, "by_severity": by_severity,
@@ -1479,29 +1718,43 @@ def compute_stats(run: Run) -> Dict[str, Any]:
             "files_list": sorted(files, key=lambda f: -(f["adds"] + f["dels"])),
         },
         "tests": ({**last_cp, "reported_by": "coder"} if last_cp else None),
-        "review": ({**review, "findings": findings,
-                    "by_severity": {s: sum(1 for f in findings if f["severity"] == s) for s in SEVERITIES},
-                    "matched_items": sum(1 for f in findings if f.get("matches_item"))}
-                   if review else None),
+        "reviews": reviews_out,
+        "findings": findings,
         "warnings": warnings,
     }
 
 
+SPAN_WORDS = {"plan": "plan", "review": "review", "response": "response",
+              "final_call": "final call", "rebuttal": "last word", "checkpoint": "checkpoint",
+              "pr": "pull request", "intervention": "intervention", "review_result": "project review",
+              "fix_request": "fix request", "finding_update": "re-check and follow-ups",
+              "acceptance": "acceptance check", "narrative": "summary", "close": "close"}
+
+
 def timeline(run: Run, rel) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-    """Credit the time before each recorded turn to whoever produced it."""
+    """Credit the time before each recorded turn to whoever produced it.
+
+    The review lane is the project review itself. Re-checking findings and
+    filing follow-ups is the lead's work, and so is everything else it records.
+    A review from before the run took none of the run's time.
+    """
     spans: List[Dict[str, Any]] = []
     marks: List[Dict[str, Any]] = []
     prev = run.events[0]["ts"]
     for e in run.events[1:]:
-        if e["type"] in ("note", "limits"):
+        before_run = e["type"] == "review_result" and e["data"].get("stage") == "before_run"
+        if e["type"] in ("note", "limits") or before_run:
             continue
-        lane = "review" if e["type"] in ("review_result", "finding_update") else e["actor"]
+        ran = e["type"] == "review_result" and e["data"].get("ran")
+        lane = "review" if ran else e["actor"]
+        word = SPAN_WORDS.get(e["type"], e["type"])
         start, end = rel(prev), rel(e["ts"])
         if spans and spans[-1]["lane"] == lane and spans[-1]["end"] == start:
             spans[-1]["end"] = end
-            spans[-1]["label"] += f", {e['type']}"
+            if word not in spans[-1]["label"].split(", "):
+                spans[-1]["label"] += f", {word}"
         else:
-            spans.append({"lane": lane, "start": start, "end": end, "label": e["type"]})
+            spans.append({"lane": lane, "start": start, "end": end, "label": word})
         if e["type"] == "plan":
             marks.append({"at": end, "label": "plan"})
         elif e["type"] == "checkpoint":
@@ -1524,7 +1777,10 @@ def phase_bands(run: Run, rel) -> List[Dict[str, Any]]:
     if build_end > plan_end:
         bands.append({"label": "Build", "start": plan_end, "end": build_end})
     if pr and end > build_end:
-        bands.append({"label": "Review", "start": build_end, "end": end})
+        # After the pull request the lead either reviews it or re-checks what an
+        # earlier review found.
+        recheck = run.review_at("before_run") and not run.review_at("after_pr")
+        bands.append({"label": "Re-check" if recheck else "Review", "start": build_end, "end": end})
     return bands
 
 
@@ -1549,9 +1805,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     p.add_argument("run_dir")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_state)
-    p = sub.add_parser("turn", help="print the brief for a worker's next turn")
+    p = sub.add_parser("turn", help="write the brief for a worker's next turn and print the handoff")
     p.add_argument("run_dir")
     p.add_argument("--for", dest="for_", required=True, choices=["coder", "critic"])
+    p.add_argument("--full", action="store_true",
+                   help="print the whole brief instead of writing it to the run folder, for a "
+                        "worker that cannot read the run folder")
     p.set_defaults(func=cmd_turn)
     p = sub.add_parser("show", help="print an item, an event or the item list")
     p.add_argument("run_dir")

@@ -16,9 +16,11 @@ also has its own role file next to this one.
 - **Critic.** Reads, never writes. Reviews the plan and each checkpoint
   through the lenses below and says what should change and why.
 
-The lead is the only one who runs `cct.py`. A worker writes its turn as JSON to
-`turns/<role>-next.json` in the run folder and replies with the path and one
-line. A worker never edits the ledger, another worker's files or the brief.
+The lead is the only one who runs `cct.py`. It writes each worker's turn brief
+to `turns/<role>-brief.md` in the run folder and hands the worker a short
+message naming that file. A worker reads the brief, writes its turn as JSON to
+`turns/<role>-next.json` and replies with the path and one line. A worker never
+edits the ledger, another worker's files or the brief.
 
 ## The sequence
 
@@ -41,14 +43,20 @@ line. A worker never edits the ledger, another worker's files or the brief.
 7. **Final review.** The coder marks the last checkpoint `"final": true`. The
    critic reviews the whole change as it will ship. If the coder changes code
    after the final review, it records another final checkpoint for the critic.
-8. **Pull request.** The coder pushes and opens the pull request. The pull
-   request must be exactly the last reviewed checkpoint: `cct.py` refuses it
-   while the branch has commits, changes or untracked files the critic has not
-   seen.
+8. **Pull request.** The coder pushes and opens the pull request. When the
+   brief names a pull request that already exists, the coder pushes to that
+   one and opens no other. The pull request must be exactly the last reviewed
+   checkpoint: `cct.py` refuses it while the branch has commits, changes or
+   untracked files the critic has not seen.
 9. **Project review and fix round.** The lead reviews the pull request. Blocking
    findings go back to the pair for one fix round: the coder fixes them in a
    checkpoint, the critic reviews it, the coder pushes, and the lead re-checks
    each one. Non-blocking findings become follow-up issues.
+
+   A run can also start from a review that already ran. The lead records it
+   before the plan, the briefs list its findings, each checkpoint names the
+   findings it fixes, and after the pull request turn the lead re-checks every
+   finding at the new head.
 10. **Report.** The lead checks the acceptance criteria, writes the summary and
     publishes the report.
 
@@ -182,9 +190,14 @@ Answer exactly the critiques the turn brief lists. `decision` is `accept`,
   "notes": "Policy is a frozen dataclass; jitter injected for tests.",
   "tests": {"command": "pytest tests/retry -q", "passed": 21, "failed": 0},
   "deviations": ["Merged two planned units; the split added no clarity."],
+  "addresses": ["F2", "F3"],
   "final": false
 }
 ```
+
+`addresses` is optional. Use it when the run fixes the findings of an earlier
+review: list the findings this checkpoint fixes, by the IDs the turn brief
+gives. The critic checks each fix against its finding.
 
 Commit first, including new files: `cct.py` refuses a checkpoint while tracked
 files have uncommitted changes or untracked files are neither committed nor
@@ -200,7 +213,8 @@ diff for the critic. Report the test counts from the actual run, or
 ```
 
 After the fix round, record `{"type": "pr", "url": "...", "update": true}` once
-the fixes are pushed.
+the fixes are pushed. When the brief names an existing pull request, record
+that pull request's URL; `cct.py` refuses any other.
 
 ### A response and the next checkpoint in one turn
 
@@ -221,6 +235,7 @@ turn. A worker's file holds only that worker's turns.
 ### Lead turns
 
 The lead records these with `cct.py post` as well: `intervention` (`reason`,
-`summary`, optional `rulings` of `{item, decision, rationale}`), `note`,
+`summary`, optional `rulings` of `{item, decision, rationale}` and `actions`;
+the next turn brief shows all of them), `note`,
 `limits`, `review_result`, `fix_request`, `finding_update`, `acceptance`, `narrative`
 and `close`. Their fields are in the skill's `references/lead-turns.md`.

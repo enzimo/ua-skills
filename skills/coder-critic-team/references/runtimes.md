@@ -1,7 +1,9 @@
 # Runtimes
 
 The protocol is the same everywhere: the lead hands each turn to one worker,
-records it with `cct.py`, and hands the next turn brief to the other. Only the
+records it with `cct.py`, and hands the next turn to the other. `cct.py` writes
+each turn brief to `turns/<role>-brief.md` in the run folder and prints a short
+handoff that names it; the lead passes on the handoff, not the brief. Only the
 way workers start, receive turns and reach GitHub differs. Read the section
 for the runtime you are in.
 
@@ -27,10 +29,17 @@ the foreground:
   Start a new child for each of that worker's turns; the turn brief carries
   what it needs.
 
-Brief a new worker with: its role (`roles/coder.md` or `roles/critic.md` in
-the run folder), the protocol (`roles/protocol.md`), and the output of
-`cct.py turn RUN_DIR --for <role>`. Brief a continued worker with the turn
-brief only.
+Brief every worker with the handoff `cct.py` prints for it, after `cct.py post`
+or from `cct.py turn RUN_DIR --for <role>`. A first handoff also names the
+role file and the protocol in the run folder. Do not paste the turn brief into
+`Agent`, `SendMessage` or `delegate_task`: the worker reads the file. Every
+brief names the role file and the protocol at its top, so a worker started
+fresh for a turn, or one that replaces another, needs nothing more.
+
+A worker started with `Agent` and `run_in_background: false` answers within
+your turn. A worker continued with `SendMessage` answers later: after the
+send, finish your turn, and the harness brings you back when the worker
+replies. Do not poll or sleep while you wait.
 
 **Checkout.** Give the coder its own branch and worktree. In T3 Code, use the
 thread's worktree when it has one. The critic reads the same checkout and
@@ -38,7 +47,8 @@ must not write to it. Keep the run folder outside the checkout, for example
 next to it in a `cct-runs/` folder.
 
 **GitHub.** The coder pushes the branch and opens the pull request with
-`gh pr create --draft`. The lead files follow-up issues with
+`gh pr create --draft`, or pushes to the pull request the brief names and
+opens none. The lead files follow-up issues with
 `gh issue create`, after checking open issues for an existing one, and marks
 the pull request ready with `gh pr ready` once no blocking finding is left.
 
@@ -48,13 +58,17 @@ request. It chooses and runs its own reviewers.
 **Report.**
 
 1. Render both modes: `--mode t3` for the thread and `--mode page` for a file.
-2. In T3 Code, call `html_preview` with the t3 HTML to get its
-   `contentHeight`, then `html_render` with that height and a short title. If
-   the preview is unavailable, pass a height of 2000. Do not describe the page
-   again in your reply.
-3. Reply with three to five lines: the outcome, the pull request link, what
+   The t3 file is the compact view; the page has every text in full.
+2. In T3 Code, call `html_render` once with `path` set to the absolute path of
+   the t3 file, a height of 2000 and a short title. Do not pass the HTML
+   inline, do not call `html_preview` for a height (the frame fits itself to
+   the page), and do not split the report or rebuild parts of it. Do not
+   describe the page again in your reply.
+3. If `html_render` refuses the file, tell the person and give the page's
+   path; show nothing by hand in its place.
+4. Reply with three to five lines: the outcome, the pull request link, what
    needs a human decision, and the absolute path of `report.html`.
-4. Without T3 Code, give the absolute path of `report.html` and a short
+5. Without T3 Code, give the absolute path of `report.html` and a short
    Markdown summary instead.
 
 ## Codex
@@ -71,8 +85,8 @@ Universal Agents routes all work between agents through TeamLead. Workers do
 not message each other, and a worker does not keep its model's context from
 one turn to the next. Its task keeps its saved work notes. The protocol fits
 this: every turn brief carries the critiques and decisions the worker must
-answer, and the run folder holds only artifacts (the plan, the diffs, the
-ledger).
+answer and points to the plan, and the run folder holds the artifacts (the
+briefs, the plan, the diffs, the ledger).
 
 **Scripts.** Load `shell-execution-workflows` before using `shell`. A skill in
 `control/skills` runs as
@@ -135,7 +149,8 @@ none applies.
    `target_named_agent_type="CodeWritingAgent"`. Set
    `check_back_after_minutes` to the brief's stall limit. In the problem
    statement:
-   - put the coder's turn brief;
+   - put the coder's handoff from `cct.py`, which names its turn brief in the
+     run folder;
    - say that the role files are in the run folder;
    - say that at the end of every turn until its `pr` turn is recorded, the
      coder raises the escalation in step 2 instead of finishing its task.
@@ -144,19 +159,23 @@ none applies.
    The escalation reaches you as a task of its own, so its problem statement
    must name the run folder and the turn file. The coder then waits for the
    answer.
-3. Record the coder's turn. Delegate a new critic task with the critic's turn
-   brief in the problem statement and the same `check_back_after_minutes`.
+3. Record the coder's turn. Delegate a new critic task with the critic's
+   handoff and its role file and protocol paths in the problem statement, and
+   the same `check_back_after_minutes`.
 4. When the critic's `task_response` arrives, record its turn. Answer the
    coder's escalation task with a `task_response` whose answer is the coder's
-   next turn brief.
+   next handoff.
 5. You wake when delegated tasks end or the check-back time passes. A missing
    reply shows a transport or responsiveness problem; it does not mean the
    work finished.
 6. The coder's task ends with its `pr` turn. For the fix round, delegate a new
-   coder task with the coder's fix turn brief, following the same pattern.
+   coder task with the coder's fix handoff, following the same pattern.
 
-Never pass a turn by telling a worker to read another worker's files. Put what
-it must answer in the delegation; the turn brief does this.
+A worker reads only the brief `cct.py` wrote for it, its role file, the
+protocol and the files that brief names. Never pass a turn by telling a worker
+to read another worker's files. When a worker's task cannot read the run
+folder, put the output of `cct.py turn <run folder> --for <role> --full` in the
+delegation instead of the handoff.
 
 **Access.** Check `list_my_access`. The coder's pull request needs `cli:github`.
 Ask with `request_access(tool_id="cli:github", level="write", reason=...,
@@ -165,7 +184,8 @@ hand_on=true)`. For a missing GitHub sign-in or account link, call
 
 **GitHub.** `gh` is blocked in shell. Load `secure-credential-workflows`, then:
 
-- Open a draft pull request with `secure_cli(provider="github",
+- When the brief names an existing pull request, push to it and open none.
+- Otherwise open a draft pull request with `secure_cli(provider="github",
   action="gh.exec", params={"argv": ["pr", "create", "--draft", "--repo",
   ..., "--head", ..., "--base", ..., "--title", ..., "--body", ...]},
   reason=...)`. Without a draft, use `action="pr.create"` with

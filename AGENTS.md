@@ -79,9 +79,15 @@ The catalog includes `coder-critic-team` for supervised coder-and-critic
 implementation. Keep its protocol, `scripts/cct.py` validation and the role
 files consistent: the coder decides every critique except a blocking one the
 critic maintains, which the lead rules on; the lead is the only ledger writer
-and passes turn briefs unchanged. Keep every report number computed by
-`cct.py stats`, the report script-free, and `references/report-design.md`,
-`assets/report.css` and `scripts/render_report.py` in step. Keep its Universal
+and hands each worker the brief file `cct.py` wrote, by its path and
+unchanged. Keep the two ways a run meets a review working: a review of the
+new pull request, and a review from before the run whose findings the run
+fixes on an existing pull request and the lead re-checks. Keep every report
+number computed by `cct.py stats`, the report script-free, and
+`references/report-design.md`, `assets/report.css` and
+`scripts/render_report.py` in step. Keep the in-thread report the whole report
+in compact form, shown from its file, and keep `render_report.py` reading
+statistics of schema 1 and 2. Keep its Universal
 Agents mapping limited to the existing `delegate_task` and
 `needs_specialist_support` escalation, per-agent-type model settings,
 `secure_cli` GitHub actions and `notify_user` attachments; a hosted report

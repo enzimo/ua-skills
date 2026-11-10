@@ -19,6 +19,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a script-free report with its own design (`references/report-design.md`),
   inline in T3 Code or as a standalone light and dark page. The skill maps the protocol to T3 Code,
   Claude Code, Codex and Universal Agents.
+  A run can also continue an existing pull request (`pull_request` in the
+  brief) and fix the findings of a review that ran before it: the lead records
+  that review first, each checkpoint names the findings it fixes, and the lead
+  re-checks every finding after the push. The lead hands each worker a
+  two-line handoff naming the brief file instead of pasting the brief. The
+  in-thread report is a compact form of the whole report, shown from its file.
 
 ### Changed
 

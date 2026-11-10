@@ -88,7 +88,7 @@ class Driver:
         return self.call("post", str(self.run), "--actor", cct.ACTOR_OF[first["type"]],
                          "--file", str(path), "--at", at(minutes))
 
-    def init(self) -> None:
+    def init(self, **extra) -> None:
         brief = {
             "title": "Retry failed webhook deliveries with exponential backoff",
             "outcome": "Webhook deliveries that fail transiently are retried with backoff and "
@@ -110,6 +110,7 @@ class Driver:
             },
             "limits": {"max_checkpoints": 9, "stall_minutes": 45},
         }
+        brief.update(extra)
         path = self.run.parent / "brief.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(brief))
@@ -337,10 +338,13 @@ class SampleRunTest(unittest.TestCase):
         self.assertEqual(diff["by_kind"]["docs"]["adds"], 34)
 
     def test_review_links_findings_to_critiques(self):
-        review = self.stats["review"]
+        self.assertEqual(self.stats["schema"], 2)
+        (review,) = self.stats["reviews"]
+        self.assertEqual(review["stage"], "after_pr")
+        self.assertEqual(review["findings"], ["F1", "F2", "F3", "F4"])
         self.assertEqual(review["by_severity"], {"blocking": 1, "should_fix": 2, "consider": 1})
-        self.assertEqual(review["matched_items"], 1)
-        statuses = {f["id"]: f["status"] for f in review["findings"]}
+        self.assertEqual(self.stats["counts"]["findings_matched"], 1)
+        statuses = {f["id"]: f["status"] for f in self.stats["findings"]}
         self.assertEqual(statuses, {"F1": "fixed", "F2": "issue_filed", "F3": "issue_filed",
                                     "F4": "issue_filed"})
         c04 = next(i for i in self.stats["item_list"] if i["id"] == "C04")
@@ -376,10 +380,34 @@ class SampleRunTest(unittest.TestCase):
                        "lenses": LENSES, "checkpoints": ["one"]})
             d.post(9, {"type": "review", "summary": "s",
                        "items": [item("intent", "blocking", "Misses criterion A3")]})
-            text = d.call("turn", str(d.run), "--for", "coder")
+            text = d.call("turn", str(d.run), "--for", "coder", "--full")
             self.assertIn("C01", text)
             self.assertIn("Misses criterion A3", text)
             self.assertIn("Nothing is waiting", d.call("turn", str(d.run), "--for", "critic"))
+
+    def test_the_brief_goes_to_a_file_and_the_handoff_stays_short(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Driver(Path(tmp))
+            d.init()
+            brief = d.run / "turns" / "coder-brief.md"
+            first = d.call("turn", str(d.run), "--for", "coder")
+            self.assertIn(str(brief), first)
+            self.assertIn("roles/coder.md", first)  # a first turn names the role file
+            d.post(5, {"type": "plan", "summary": "s", "units": [{"name": "u", "purpose": "p " * 400}],
+                       "lenses": LENSES, "checkpoints": ["one"]})
+            out = d.post(9, {"type": "review", "summary": "s",
+                             "items": [item("intent", "blocking", "Misses criterion A3")]})
+            handoff = next(line for line in out.splitlines() if line.startswith("Handoff for the coder"))
+            self.assertIn(str(brief), handoff)
+            self.assertNotIn("roles/coder.md", handoff)
+            self.assertLess(len(handoff), 400)
+            self.assertIn("Misses criterion A3", brief.read_text())
+            # Later coder briefs point to the plan instead of repeating it.
+            d.post(10, {"type": "response", "decisions": acc("C01")})
+            text = brief.read_text()
+            self.assertIn("0002-coder-plan.json", text)
+            self.assertNotIn("p p p", text)
+            self.assertLess(len(text), 2500)
 
 
 class ProtocolRefusalTest(unittest.TestCase):
@@ -548,6 +576,9 @@ class ProtocolRefusalTest(unittest.TestCase):
             {"id": f"A{n}", "status": "met", "evidence": "test"} for n in range(1, 6)]})
         msg = self.post_refused({"type": "close", "outcome": "ready_to_merge"})
         self.assertIn("project review has not run", msg)
+        # A review from before the run is recorded before the pull request turn.
+        late = {**earlier_review(), "findings": []}
+        self.assertIn("before the pull request turn", self.post_refused(late))
         self.d.post(30, {"type": "close", "outcome": "needs_attention"})
 
     def test_limits_allow_another_fix_round(self):
@@ -566,7 +597,7 @@ class ProtocolRefusalTest(unittest.TestCase):
             self.d.post(minute + 4, {"type": "pr", "url": "https://github.com/example-owner/relay/pull/1",
                                      "update": True})
             self.d.post(minute + 5, {"type": "finding_update", "updates": [
-                {"finding": "F1", "status": "open"}]})
+                {"finding": "F1", "status": "open", "note": "Still crashes on an empty list."}]})
             if n == 1:
                 self.assertIn("raise the limit", self.post_refused({"type": "fix_request", "findings": ["F1"]}))
                 self.d.post(minute + 6, {"type": "limits", "limits": {"fix_rounds": 2},
@@ -594,6 +625,173 @@ class ProtocolRefusalTest(unittest.TestCase):
         self.assertNotIn("loop", [s["signal"] for s in state["signals"]])
 
 
+PR_URL = "https://github.com/example-owner/relay/pull/101"
+
+
+def earlier_review(count: int = 3) -> dict:
+    """A project review that ran before the run, on the pull request's earlier head."""
+    severities = ["blocking", "should_fix", "consider"]
+    return {"type": "review_result", "stage": "before_run", "verdict": "needs_rework",
+            "reviewers": ["General reviewer", "Failure analyst"], "head_sha": "474defec0000",
+            "source": "review run relay-101-a",
+            "findings": [{"severity": severities[min(n, 2)], "title": f"Problem {n + 1}",
+                          "ref": f"GEN-{n + 1}", "scenario": f"Scenario {n + 1}."}
+                         for n in range(count)]}
+
+
+class ExistingPullRequestTest(unittest.TestCase):
+    """A run that fixes the findings of an earlier review on a pull request that already exists."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.d = Driver(Path(self.tmp.name))
+        self.d.init(pull_request={"url": PR_URL, "number": 101})
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def brief(self, role: str) -> str:
+        return self.d.call("turn", str(self.d.run), "--for", role, "--full")
+
+    def state(self) -> dict:
+        return json.loads(self.d.call("state", str(self.d.run), "--json"))
+
+    def build(self, findings: int = 3) -> None:
+        d = self.d
+        d.post(1, earlier_review(findings))
+        self.assertIn("Problem 2", self.brief("coder"))  # the plan turn lists what to fix
+        d.post(5, {"type": "plan", "summary": "s", "units": [{"name": "u", "purpose": "p"}],
+                   "lenses": LENSES, "checkpoints": ["one"]})
+        self.assertIn("GEN-1", self.brief("critic"))
+        d.post(8, {"type": "review", "summary": "s", "items": []})
+        self.assertIn("No checkpoint has named these yet: F1, F2, F3", self.brief("coder"))
+        write_lines(d.repo, "src/a.py", 10, "a")
+        commit(d.repo, "a")
+        d.post(20, {"type": "checkpoint", "title": "a", "final": True, "addresses": ["F2", "F1"],
+                    "tests": {"passed": 1, "failed": 0}})
+        self.assertIn("Check each fix against the finding's scenario", self.brief("critic"))
+        d.post(24, {"type": "review", "summary": "s",
+                    "items": [item("correctness", "consider", "The F2 fix misses an empty list")]})
+        d.post(25, {"type": "response", "decisions": acc("C01")})
+
+    def test_the_pr_turn_records_the_existing_pull_request(self):
+        self.assertIn("#101", (self.d.run / "brief.md").read_text())
+        self.build()
+        text = self.brief("coder")
+        self.assertIn("already exists", text)
+        self.assertIn("Do not open another pull request", text)
+        self.assertNotIn("as a draft", text)
+        path = self.d.run / "turns" / "coder-next.json"
+        path.write_text(json.dumps({"type": "pr", "url": "https://github.com/example-owner/relay/pull/7"}))
+        msg = self.d.refused("post", str(self.d.run), "--actor", "coder", "--file", str(path))
+        self.assertIn("do not open another", msg)
+        self.d.post(26, {"type": "pr", "url": PR_URL + "/", "number": 101})
+        self.d.call("stats", str(self.d.run))
+        stats = json.loads((self.d.run / "stats.json").read_text())
+        self.assertTrue(stats["run"]["pr"]["existing"])
+
+    def test_an_intervention_reaches_the_brief_with_its_actions(self):
+        self.d.post(1, {"type": "intervention", "reason": "other", "summary": "Keep the branch name.",
+                        "actions": ["Do not rename feat/webhook-retry."]})
+        text = self.brief("coder")
+        self.assertIn("Keep the branch name.", text)
+        self.assertIn("Do not rename feat/webhook-retry.", text)
+
+    def test_an_earlier_review_is_rechecked_after_the_pull_request(self):
+        d = self.d
+        refuse = lambda turn: self.refuse(turn)  # noqa: E731
+        self.build()
+        self.assertIn("starts after the pull request", refuse({"type": "fix_request", "findings": ["F1"]}))
+        d.post(26, {"type": "pr", "url": PR_URL, "number": 101})
+        expect = self.state()["expect"]
+        self.assertEqual(expect[0]["type"], "finding_update")
+        self.assertEqual(expect[0]["items"], ["F1", "F2", "F3"])
+        self.assertTrue(any(e["type"] == "review_result" and "optional" in e["why"] for e in expect))
+        self.assertIn("required for open", refuse({"type": "finding_update", "updates": [
+            {"finding": "F3", "status": "open"}]}))
+        d.post(40, {"type": "finding_update", "updates": [
+            {"finding": "F1", "status": "fixed", "evidence": "test_a passes."},
+            {"finding": "F2", "status": "fixed", "evidence": "test_b passes.", "matches_item": "C01"}]})
+        d.post(41, {"type": "narrative", "summary": "Done."})
+        d.post(42, {"type": "acceptance", "criteria": [
+            {"id": f"A{n}", "status": "met", "evidence": "test"} for n in range(1, 6)]})
+        msg = refuse({"type": "close", "outcome": "ready_to_merge"})
+        self.assertIn("F3 were not re-checked", msg)
+        d.post(43, {"type": "finding_update", "updates": [
+            {"finding": "F3", "status": "open", "note": "Scoped out by the brief; a follow-up."}]})
+        self.assertIn("F3 are still open", refuse({"type": "close", "outcome": "ready_to_merge"}))
+        d.post(44, {"type": "close", "outcome": "needs_attention"})
+        d.call("stats", str(d.run))
+        stats = json.loads((d.run / "stats.json").read_text())
+        # Open on purpose, with its reason, is not a gap in the report.
+        self.assertEqual(stats["warnings"], [])
+        (review,) = stats["reviews"]
+        self.assertEqual((review["stage"], review["by_status"]["fixed"], review["by_status"]["open"]),
+                         ("before_run", 2, 1))
+        by_id = {f["id"]: f for f in stats["findings"]}
+        self.assertEqual(by_id["F1"]["addressed_in"], ["final"])
+        self.assertEqual(stats["item_list"][0]["relates_to_findings"], ["F2"])
+        self.assertEqual(stats["item_list"][0]["matched_by_review"], [])
+        tl = stats["timeline"]
+        # The earlier review took none of the run's time; the re-check is the lead's.
+        self.assertEqual({sp["lane"] for sp in tl["spans"]}, {"coder", "critic", "lead"})
+        self.assertEqual([p["label"] for p in tl["phases"]], ["Plan", "Build", "Re-check"])
+        lead = sum(sp["end"] - sp["start"] for sp in tl["spans"] if sp["lane"] == "lead")
+        self.assertEqual(lead, 18)
+        for mode in ("page", "t3"):
+            out = render.render(stats, mode)
+            self.assertIn("Earlier review", out)
+            self.assertIn("ran before this run, at 474defec00", out)
+            self.assertIn("Scoped out by the brief; a follow-up.", out)
+            self.assertIn("Addressed in Final review.", out)
+            self.assertIn("F1 (GEN-1)", out)
+            self.assertNotIn("Project review raised this again", out)
+            self.assertIn("Lead worked 18 min", out)
+
+    def refuse(self, turn) -> str:
+        path = self.d.run / "turns" / "lead-input.json"
+        path.write_text(json.dumps(turn))
+        return self.d.refused("post", str(self.d.run), "--actor", cct.ACTOR_OF[turn["type"]],
+                              "--file", str(path))
+
+    def test_a_second_review_can_follow_the_pull_request(self):
+        d = self.d
+        self.build()
+        self.assertIn("already recorded", self.refuse(earlier_review()))
+        d.post(26, {"type": "pr", "url": PR_URL})
+        d.post(30, {"type": "review_result", "verdict": "approve_with_changes",
+                    "reviewers": ["General reviewer"],
+                    "findings": [{"severity": "consider", "title": "A new nit"}]})
+        d.call("stats", str(d.run))
+        stats = json.loads((d.run / "stats.json").read_text())
+        self.assertEqual([r["findings"] for r in stats["reviews"]], [["F1", "F2", "F3"], ["F4"]])
+        self.assertIn("review", {sp["lane"] for sp in stats["timeline"]["spans"]})
+        out = render.render(stats, "page")
+        self.assertLess(out.index("Earlier review<small>"), out.index("Review of the pull request<small>"))
+
+    def test_findings_sort_by_number_and_long_lists_start_closed(self):
+        d = self.d
+        self.build(findings=12)
+        d.post(26, {"type": "pr", "url": PR_URL})
+        d.post(30, {"type": "finding_update", "updates": [
+            {"finding": f"F{n}", "status": "fixed", "evidence": f"Check {n}."} for n in range(1, 12)]
+            + [{"finding": "F12", "status": "open", "note": "Left for the next step."}]})
+        d.call("stats", str(d.run))
+        out = render.render(json.loads((d.run / "stats.json").read_text()), "page")
+        order = re.findall(r'<span class="mono">(F\d+)', out)
+        self.assertEqual(order, [f"F{n}" for n in range(1, 13)])
+        self.assertEqual(out.count('<details class="finding" open>'), 1)  # only the open one
+        self.assertIn("<b>Still open:</b> Left for the next step.", out)
+
+    def test_a_changed_checkout_after_the_critic_is_signalled(self):
+        d = self.d
+        d.post(5, {"type": "plan", "summary": "s", "units": [{"name": "u", "purpose": "p"}],
+                   "lenses": LENSES, "checkpoints": ["one"]})
+        (d.repo / "notes-from-critic.txt").write_text("x")
+        out = d.post(8, {"type": "review", "summary": "s", "items": []})
+        self.assertIn("Signal: checkout_changed", out)
+
+
 class RenderEdgeTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -614,9 +812,11 @@ class RenderEdgeTest(unittest.TestCase):
             lambda s: s["item_list"][0].__setitem__("severity", "urgent"),
             lambda s: s["timeline"]["spans"][0].__setitem__("start", "0;left:0"),
             lambda s: s["rounds"][1]["coder"]["git"].__setitem__("adds", None),
-            lambda s: s["review"]["findings"][0].__setitem__("status", 3),
+            lambda s: s["findings"][0].__setitem__("status", 3),
+            lambda s: s["findings"][0].__setitem__("stage", "later"),
+            lambda s: s["reviews"][0].__setitem__("verdict", "fine"),
             lambda s: s["acceptance"].append("A9"),
-            lambda s: s.__setitem__("schema", 2),
+            lambda s: s.__setitem__("schema", 3),
         ]
         for n, mutate in enumerate(mutations):
             bad = copy.deepcopy(self.stats)
@@ -641,11 +841,13 @@ class RenderEdgeTest(unittest.TestCase):
         s = copy.deepcopy(self.stats)
         s["run"]["title"] = '<img src=x onerror="alert(1)">'
         s["item_list"][0]["rationale"] = "</style><script>alert(1)</script>"
-        s["review"]["findings"][1]["issue_url"] = "javascript:alert(1)"
+        s["findings"][1]["issue_url"] = "javascript:alert(1)"
+        s["findings"][0]["note"] = "<b>bold</b>"
         out = render.render(s, "page")
         self.assertNotIn("<img src=x", out)
         self.assertNotIn("<script", out.lower())
         self.assertNotIn("javascript:", out)
+        self.assertNotIn("<b>bold</b>", out)
 
     def test_glyphs_carry_a_hover_summary(self):
         import copy
@@ -661,6 +863,37 @@ class RenderEdgeTest(unittest.TestCase):
         self.assertTrue(long_tip.endswith("word…"))
         self.assertLess(len(long_tip), 160)
         self.assertNotRegex(out, r'class="g g--[a-z]+ s--[a-z_]+"[^>]*title=')
+
+    def test_compact_keeps_every_section_and_drops_the_long_texts(self):
+        import copy
+        s = copy.deepcopy(self.stats)
+        item = next(i for i in s["item_list"] if i["outcome"] == "accepted")
+        item["detail"] = "long detail " * 80
+        full, compact = render.render(s, "t3", detail="full"), render.render(s, "t3")
+        self.assertIn('data-detail="compact"', compact)
+        self.assertIn('data-detail="full"', render.render(s, "page"))
+        self.assertIn("long detail long detail", full)
+        self.assertNotIn("long detail long detail", compact)
+        self.assertLess(len(compact), len(full))
+        for text in ("At a glance", "Timeline", "Acceptance criteria", "Rounds", "Decisions to check",
+                     "Where the critique landed", "What changed", "Project review", "Next steps",
+                     item["title"], "compact view"):
+            self.assertIn(text, compact)
+        self.assertLess(compact.index('id="h-tl"'), compact.index('id="h-criteria"'))
+
+    def test_statistics_written_before_schema_2_still_render(self):
+        import copy
+        old = copy.deepcopy(self.stats)
+        review = dict(old.pop("reviews")[0])
+        review["findings"] = [{k: v for k, v in f.items() if k != "stage"} for f in old.pop("findings")]
+        del review["stage"]
+        old["review"], old["schema"] = review, 1
+        out = render.render(old, "page")
+        self.assertIn("Project review", out)
+        self.assertIn("issue #143", out)
+        old["review"] = "none"
+        with self.assertRaises(render.StatsError):
+            render.render(old, "page")
 
     def test_long_runs_render(self):
         import copy
