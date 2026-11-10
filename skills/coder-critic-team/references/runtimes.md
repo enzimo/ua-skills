@@ -190,13 +190,15 @@ the task had already waited five times. Each task has its own five:
    - give the coder these rules: "At the end of each turn, write your turn
      file and raise a manager_escalation with
      escalation_type=needs_specialist_support that names the run folder and
-     your turn file, at most five times in this task. Start each escalation's
-     problem statement with 'Escalation N of 5 in this task': N is 1 in a new
-     task, and otherwise one more than the number in the answer you just
-     received. When the answer to escalation 5 of 5 arrives, finish your task
-     with a task_response that names the run folder, without starting that
-     turn, unless it is your pr turn. Finish your task after your pr turn
-     too. If an escalation comes back failed, finish your task and say so."
+     your turn file. Every escalation you raise in this task counts toward
+     five, a needs_user_input one for a sign-in, an account or a question
+     included. Start each one's problem statement with 'Escalation N of 5 in
+     this task': N is 1 for the first in a new task, and otherwise one more
+     than the number in the last answer you received. When the answer to
+     escalation 5 of 5 arrives, finish your task with a task_response that
+     names the run folder, without starting that turn, unless it is your pr
+     turn. Finish your task after your pr turn too. If an escalation comes
+     back failed, finish your task and say so."
 2. At the end of each turn, the coder writes its turn file and raises a
    `manager_escalation` with `escalation_type="needs_specialist_support"`.
    The escalation reaches you as a task of its own, so its problem statement
@@ -290,7 +292,10 @@ skill can be added as a team skill.
 **Report.** Publish the report as a hosted page from its statistics file:
 
 1. Run `cct.py stats RUN_DIR`. It writes `stats.json` into the run folder.
-2. Call `publish_single_page_site(site_kind="report", site_spec_path=...)`
+2. Check that the description of `publish_single_page_site` names the
+   `report` kind and `site_spec_path`. If it does not, the team's release
+   cannot publish the report: send it as a file, as below. Otherwise call
+   `publish_single_page_site(site_kind="report", site_spec_path=...)`
    with the path of that file, and leave `site_spec_json` empty. A relative
    path starts in the person's folder, for example
    `site_spec_path="coder-critic/relay-142/stats.json"`; the file may be up
@@ -305,14 +310,26 @@ skill can be added as a team skill.
 5. Put the three-to-five-line summary with the link in your final
    `task_response`.
 
-A refused path (`file_not_found` or a folder-rule refusal) usually means the
-path does not name the run folder's `stats.json`; correct it once. Send the
-report as a file instead when the team's Universal Agents cannot publish it:
-the tool's description names no `report` kind or no `site_spec_path`, or the
-call fails with an input error naming `site_kind`, `site_spec_path` or
-`site_spec_json` (a release without them), with `failure_reason`
-`invalid_site_kind`, or with `invalid_report_stats` (its copy of the report
-renderer is older than this skill). Then:
+When the call fails, act on its `failure_reason`:
+
+- `site_spec_missing`, `site_spec_conflict` or `site_spec_path_report_only`:
+  the arguments are wrong. Call again with `site_kind="report"`,
+  `site_spec_path` set and `site_spec_json` empty.
+- `file_not_found` or a folder-rule refusal: the path does not name the run
+  folder's `stats.json`. Correct it and call again.
+- `invalid_json` or `unreadable_spec_file`: the file is damaged, for example
+  by an interrupted `cct.py stats`. Run `cct.py stats RUN_DIR` again and call
+  again.
+- `invalid_site_kind`, or an input error that has no `failure_reason` and
+  names `site_kind`, `site_spec_path` or `site_spec_json`: the team's release
+  is older than the report kind or `site_spec_path`. Send the report as a
+  file.
+- `invalid_report_stats`: the release's copy of the report renderer is older
+  than this skill. Send the report as a file.
+- Anything else, or the same refusal after one corrected call: send the
+  report as a file and tell the person why there is no page.
+
+To send the report as a file:
 
 1. Render `--mode page` into the run folder.
 2. Send it with `notify_user(message=..., attachments=[{"path":
@@ -334,13 +351,19 @@ is.
 1. Confirm the merge with `secure_cli(provider="github", action="pr.view",
    params={"repo": "example-owner/relay", "pr_number": 142}, reason=...)`.
    Its `state` must be `MERGED`.
-2. Run `cct.py tidy RUN_DIR --merged`. The checkout is a clone, a
-   repository's main checkout, which `--worktree` never removes.
-3. Remove the clone with `rm -r` in `shell` only when
-   `git status --porcelain` and `git log --branches --not --remotes
-   --oneline` both print nothing in it, so no change or commit exists only
-   there. Otherwise tell the person what is left in it.
+2. Run `cct.py tidy RUN_DIR --merged`. Add `--worktree` when the brief's
+   checkout is a linked worktree of the clone, which `git worktree list` in
+   the clone shows after the clone's own line, so the worktree and its
+   local branch go first. A clone itself is a repository's main checkout,
+   which `--worktree` never removes.
+3. Remove the clone with `rm -r` in `shell` only when `git worktree list`
+   in it shows only the clone, and `git status --porcelain` and
+   `git log --branches --not --remotes --oneline` both print nothing in it,
+   so no change or commit exists only there. Otherwise tell the person what
+   is left in it.
 4. Remove the run folder when the report is a hosted page: the page keeps its
    own copy in `sites/` of the person's folder and stays. After the
-   attachment fallback, keep the run folder, or first tell the person where
-   its `report.html` is.
+   attachment fallback, keep the run folder: `tidy` has reduced it to
+   `stats.json` and the reports, and its `report.html` is the copy that
+   lasts. Remove it only once the person says they saved the report
+   elsewhere.

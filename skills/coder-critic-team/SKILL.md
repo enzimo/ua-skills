@@ -88,10 +88,13 @@ loaded this skill from, or in Universal Agents the path
    and a new run folder outside the checkout. Then run
    `cct.py init RUN_DIR --brief brief.json`. This records the brief and copies
    `protocol.md`, `coder.md` and `critic.md` into `RUN_DIR/roles/`. It records
-   the work branch's head as the commit the run starts from and prints it:
-   checkpoint diffs and the report count only the commits after it. For an
-   existing pull request, bring its branch up to date with the remote first;
-   `init` refuses a branch that is behind.
+   the commit the run starts from and prints it: where the work branch
+   leaves the base, or the base's remote-tracking branch when that is newer.
+   Checkpoint diffs and the report count the commits after it, so commits
+   already on the branch reach the critic in the first checkpoint. For an
+   existing pull request the run starts at the pull request's head on the
+   remote; bring the local branch up to date first, as `init` refuses a
+   branch that is behind.
 
    When a project review already ran and this run fixes its findings, record
    it now as a `review_result` with `"stage": "before_run"`. The workers'

@@ -13,6 +13,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills" / "coder-critic-team" / "scripts"
@@ -866,6 +867,49 @@ class InitBaseTest(unittest.TestCase):
         self.assertIn("work branch 'feat/webhook-retry' does not exist", msg)
         self.assertFalse(self.d.run.exists())
 
+    def test_commits_already_on_the_branch_are_the_runs(self):
+        repo = self.d.repo
+        fork = sh(repo, "rev-parse", "main")
+        write_lines(repo, "src/relay/earlier.py", 6, "before init")
+        commit(repo, "A commit made before the run")
+        out = self.d.init()
+        self.assertIn(f"Base commit: {fork[:10]}", out)
+        self.assertIn("feat/webhook-retry already has 1 commit(s) that are not on main", out)
+        self.d.post(5, {"type": "plan", "summary": "s", "units": [{"name": "u", "purpose": "p"}],
+                        "lenses": LENSES, "checkpoints": ["one"]})
+        self.d.post(8, {"type": "review", "summary": "s", "items": []})
+        write_lines(repo, "src/relay/retry.py", 10, "run")
+        commit(repo, "The run's commit")
+        self.d.post(20, {"type": "checkpoint", "title": "a", "tests": {"passed": 1, "failed": 0}})
+        g = cct.Run(self.d.run).checkpoints[-1]["data"]["git"]
+        self.assertEqual((g["from"], g["commits"], g["adds"]), (fork, 2, 16))
+
+    def test_an_existing_pull_request_starts_at_its_remote_head(self):
+        repo = self.d.repo
+        fork = sh(repo, "rev-parse", "main")
+        write_lines(repo, "src/relay/earlier.py", 6, "pull request")
+        commit(repo, "The pull request's earlier commit")
+        sh(repo, "push", "-q", "-u", "origin", "feat/webhook-retry")
+        pushed = sh(repo, "rev-parse", "HEAD")
+        write_lines(repo, "src/relay/local.py", 3, "not pushed")
+        commit(repo, "A local commit not pushed yet")
+        out = self.d.init(pull_request={"url": PR_URL, "number": 101})
+        self.assertIn(f"Base commit: {pushed[:10]}", out)
+        self.assertIn("1 commit(s) of feat/webhook-retry are not on origin/feat/webhook-retry yet", out)
+        self.d.post(5, {"type": "plan", "summary": "s", "units": [{"name": "u", "purpose": "p"}],
+                        "lenses": LENSES, "checkpoints": ["one"]})
+        self.d.post(8, {"type": "review", "summary": "s", "items": []})
+        write_lines(repo, "src/relay/retry.py", 10, "run")
+        commit(repo, "The run's commit")
+        self.d.post(20, {"type": "checkpoint", "title": "a", "final": True,
+                         "tests": {"passed": 1, "failed": 0}})
+        g = cct.Run(self.d.run).checkpoints[-1]["data"]["git"]
+        self.assertEqual((g["from"], g["commits"]), (pushed, 2))
+        head = sh(repo, "rev-parse", "HEAD")
+        brief = self.d.call("turn", str(self.d.run), "--for", "critic", "--full")
+        self.assertIn(f"diff {fork[:10]}..{head[:10]}` (the whole pull request, its commits before "
+                      "this run included)", brief)
+
     def test_a_pull_request_branch_that_tracks_the_base_is_not_behind(self):
         repo = self.d.repo
         sh(repo, "push", "-q", "-u", "origin", "main")
@@ -1060,6 +1104,37 @@ class TidyTest(unittest.TestCase):
 
     @unittest.skipIf(not hasattr(os, "geteuid") or os.geteuid() == 0,
                      "needs a user that read-only folders stop")
+    def test_a_folder_that_cannot_be_removed_keeps_the_ledger(self):
+        d = closed_run(self.base)
+        with mock.patch.object(Path, "rmdir", side_effect=OSError(16, "Device or resource busy")):
+            out = self.tidy(d.run, "--merged")
+        self.assertTrue(out.startswith("2\n"), out)
+        self.assertIn("could not remove the empty folder diffs/ (Device or resource busy)", out)
+        self.assertIn("the ledger is still in place", out)
+        self.assertNotIn("  ledger.jsonl", out)
+        self.assertTrue((d.run / "ledger.jsonl").exists())
+        out = self.tidy(d.run, "--merged")
+        self.assertTrue(out.startswith("0\n"), out)
+        self.assertIn("  ledger.jsonl", out)
+
+    @unittest.skipIf(not hasattr(os, "geteuid") or os.geteuid() == 0,
+                     "needs a user that unreadable folders stop")
+    def test_an_unreadable_folder_is_refused_before_anything_is_removed(self):
+        d = closed_run(self.base)
+        hidden = d.run / "review"
+        hidden.mkdir()
+        (hidden / "report.md").write_text("x\n")
+        hidden.chmod(0o000)
+        try:
+            before = tree(d.run)
+            out = self.tidy(d.run, "--merged")
+            self.assertEqual(tree(d.run), before)
+        finally:
+            hidden.chmod(0o755)
+        self.assertTrue(out.startswith("2\n"), out)
+        self.assertIn("cannot read", out)
+        self.assertIn("nothing was removed", out)
+
     def test_a_removal_error_reports_what_was_removed(self):
         d = closed_run(self.base)
         turns = d.run / "turns"
@@ -1146,6 +1221,30 @@ class TidyWorktreeTest(unittest.TestCase):
         self.assertNotIn("--ff-only", out)
         self.assertNotIn("fetch", out)
         self.assertTrue(d.repo.exists())
+
+    @unittest.skipIf(not hasattr(os, "geteuid") or os.geteuid() == 0,
+                     "needs a user that read-only folders stop")
+    def test_a_worktree_removal_that_stops_part_way_says_so(self):
+        d = closed_run(self.base, worktree=True)
+        with open(d.main / ".git" / "info" / "exclude", "a") as fh:
+            fh.write("build/\n")
+        stuck = d.repo / "build" / "sub"
+        stuck.mkdir(parents=True)
+        (stuck / "out.o").write_text("x\n")
+        stuck.chmod(0o555)
+        try:
+            out = self.tidy(d)
+        finally:
+            stuck.chmod(0o755)
+        self.assertTrue(out.startswith("2\n"), out)
+        self.assertIn(f"git removed part of the worktree {d.repo} and stopped", out)
+        self.assertIn(f"'git -C {d.main} branch -d feat/webhook-retry'", out)
+        self.assertNotIn("nothing was removed", out)
+        self.assertTrue((d.run / "ledger.jsonl").exists())
+        self.assertNotEqual(self.branches(d), "")
+        out = self.tidy(d)  # the next run says the same, since the checkout is half gone
+        self.assertIn("is no longer a git checkout", out)
+        self.assertIn("git branch -d feat/webhook-retry", out)
 
     def test_refuses_and_removes_nothing(self):
         d = closed_run(self.base, worktree=True)

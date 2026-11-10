@@ -1023,7 +1023,9 @@ def cmd_init(args: argparse.Namespace) -> None:
         brief["pull_request"] = entry
     brief.setdefault("follow_up_issues", "file")
     one_of(brief["follow_up_issues"], ["file", "propose"], "brief.follow_up_issues")
-    repo["base_sha"] = run_start(repo, existing_pr=bool(brief.get("pull_request")))
+    repo["base_sha"], fork, notes = run_start(repo, existing_pr=bool(brief.get("pull_request")))
+    if fork != repo["base_sha"]:
+        repo["pr_base_sha"] = fork  # where the pull request's whole change starts
     if run_dir.exists() and any(run_dir.iterdir()):
         raise CctError(f"{run_dir} is not empty; use a new run folder")
     for sub in ("turns", "diffs", "roles"):
@@ -1035,38 +1037,61 @@ def cmd_init(args: argparse.Namespace) -> None:
     (run_dir / LEDGER).write_text(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n",
                                   encoding="utf-8")
     print(f"Run folder ready: {run_dir}")
-    print(f"Base commit: {repo['base_sha'][:10]}, the head of {repo['branch']}; checkpoint diffs "
-          "and the report count only the commits after it.")
+    print(f"Base commit: {repo['base_sha'][:10]}; checkpoint diffs and the report count the "
+          f"commits of {repo['branch']} after it.")
+    for note in notes:
+        print(f"Note: {note}")
     print(f"Next: start the coder with the turn brief from 'cct.py turn {run_dir} --for coder'.")
 
 
-def run_start(repo: Dict[str, Any], existing_pr: bool) -> str:
-    """The commit the run starts from: the work branch's head when the run begins.
+def run_start(repo: Dict[str, Any], existing_pr: bool) -> Tuple[str, str, List[str]]:
+    """Where the run starts, where the work branch leaves the base, and notes for the lead.
 
-    The base name is not used for this: a local base branch can be behind its
-    remote, or can have moved on since the branch was made, and an existing
-    pull request's branch already holds commits that are not the run's.
+    Without an existing pull request the run starts where the work branch leaves
+    the base, or the base's remote-tracking branch when that is newer, so a stale
+    local base adds no commits of others, and commits already on the branch are
+    the run's: the critic sees them in the first checkpoint. For an existing pull
+    request it starts at the pull request's head on the remote, so its earlier
+    commits are not counted as the run's and local commits not pushed yet are.
     """
-    path, branch = repo["path"], repo["branch"]
+    path, branch, base = repo["path"], repo["branch"], repo["base"]
     head = git(path, "rev-parse", "--verify", "--quiet", f"refs/heads/{branch}^{{commit}}", check=False)
     if not head:
         raise CctError(f"brief.repo: the work branch '{branch}' does not exist in {path}; create it "
                        "first, then run init")
-    if existing_pr:
-        # The pull request's branch must not be older here than on the remote,
-        # or the remote's commits would count as the run's once the coder pulls.
-        # Compare with the remote branch of the same name, not the upstream: a
-        # branch made from origin/main tracks origin/main until it is pushed with -u.
-        remote = git(path, "config", "--get", f"branch.{branch}.remote", check=False)
-        name = f"{remote if remote not in ('', '.') else 'origin'}/{branch}"
-        theirs = git(path, "rev-parse", "--verify", "--quiet", f"refs/remotes/{name}^{{commit}}",
-                     check=False)
-        behind = int(git(path, "rev-list", "--count", f"{head}..{theirs}") or 0) if theirs else 0
-        if behind:
-            raise CctError(f"brief.repo: the pull request's branch '{branch}' is {behind} commit(s) "
-                           f"behind {name}; update it first (for example 'git merge --ff-only "
-                           f"{name}'), so the run counts only its own commits")
-    return head
+    bases = [base]
+    upstream = git(path, "rev-parse", "--verify", "--quiet", f"{base}@{{upstream}}", check=False)
+    if upstream:
+        bases.append(upstream)
+    # One merge-base against both: the newest commit the branch shares with either.
+    fork = git(path, "merge-base", head, *bases, check=False)
+    if not fork:
+        raise CctError(f"brief.repo: the work branch '{branch}' shares no history with '{base}'")
+    count = lambda rng: int(git(path, "rev-list", "--count", rng) or 0)  # noqa: E731
+    if not existing_pr:
+        ahead = count(f"{fork}..{head}")
+        notes = [f"{branch} already has {ahead} commit(s) that are not on {base}; they count as "
+                 "the run's, and the critic sees them in the first checkpoint"] if ahead else []
+        return fork, fork, notes
+    # The pull request's branch must not be older here than on the remote, or the
+    # remote's commits would count as the run's once the coder pulls. Compare with
+    # the remote branch of the same name, not the upstream: a branch made from
+    # origin/main tracks origin/main until it is pushed with -u.
+    remote = git(path, "config", "--get", f"branch.{branch}.remote", check=False)
+    name = f"{remote if remote not in ('', '.') else 'origin'}/{branch}"
+    theirs = git(path, "rev-parse", "--verify", "--quiet", f"refs/remotes/{name}^{{commit}}",
+                 check=False)
+    if not theirs:
+        return head, fork, []
+    behind = count(f"{head}..{theirs}")
+    if behind:
+        raise CctError(f"brief.repo: the pull request's branch '{branch}' is {behind} commit(s) "
+                       f"behind {name}; update it first (for example 'git merge --ff-only "
+                       f"{name}'), so the run counts only its own commits")
+    ahead = count(f"{theirs}..{head}")
+    notes = [f"{ahead} commit(s) of {branch} are not on {name} yet; they count as the run's, and "
+             "the critic sees them in the first checkpoint"] if ahead else []
+    return theirs, fork, notes
 
 
 def brief_markdown(brief: Dict[str, Any]) -> str:
@@ -1370,7 +1395,9 @@ def turn_section(run: Run, role: str, e: Dict[str, Any]) -> List[str]:
                  f"+{g['adds']} −{g['dels']} in {g['files']} file(s)",
                  f"- Diff: `{run.dir / g['patch']}`",
                  f"- Whole change so far: `git -C {repo_path(run)} diff "
-                 f"{run.brief['repo']['base_sha'][:10]}..{g['head'][:10]}`",
+                 f"{whole_start(run)[:10]}..{g['head'][:10]}`"
+                 + (" (the whole pull request, its commits before this run included)"
+                    if run.brief["repo"].get("pr_base_sha") else ""),
                  f"- Tests: {tests_text(d['tests'])}"]
         if d.get("notes"):
             lines.append(f"- Coder's notes: {d['notes']}")
@@ -1519,6 +1546,12 @@ def repo_path(run: Run) -> str:
     return run.brief["repo"]["path"]
 
 
+def whole_start(run: Run) -> str:
+    """Where the change that will ship starts: an existing pull request's own start, else the run's."""
+    repo = run.brief["repo"]
+    return repo.get("pr_base_sha") or repo["base_sha"]
+
+
 def fix_findings(run: Run) -> List[str]:
     return [fid for fid, f in run.findings.items() if f.get("fix_round") == run.fix_rounds]
 
@@ -1608,8 +1641,11 @@ def cmd_tidy(args: argparse.Namespace) -> None:
     for rel in removed:
         print(f"  {rel}")
     if failure:
-        raise CctError(f"{failure}; the files listed above were removed. Fix this and run tidy "
-                       "again to finish: the ledger is still in place")
+        if os.path.lexists(run.dir / LEDGER):
+            raise CctError(f"{failure}; the files listed above were removed. Fix this and run "
+                           "tidy again to finish: the ledger is still in place")
+        raise CctError(f"{failure}; the files listed above were removed, the ledger too, so tidy "
+                       "cannot run again: remove what is left by hand after checking it")
     print("Kept the report: " + (", ".join(keep) or "nothing"))
     other += left
     if other:
@@ -1684,7 +1720,8 @@ def tidy_targets(run: Run) -> Tuple[List[str], List[str], List[str]]:
             names.add(e["data"]["plan_file"])
     names.difference_update(REPORT_FILES)
     remove, keep, other = [], [], []
-    for top, dirs, files in os.walk(run.dir):
+    unreadable: List[OSError] = []
+    for top, dirs, files in os.walk(run.dir, onerror=unreadable.append):
         here = Path(top)
         for d in sorted(dirs):
             if (here / d).is_symlink():
@@ -1699,31 +1736,43 @@ def tidy_targets(run: Run) -> Tuple[List[str], List[str], List[str]]:
                 keep.append(rel)
             else:
                 other.append(rel + ("" if regular else " (a link or special file, not followed)"))
+    if unreadable:
+        raise CctError(f"cannot read {unreadable[0].filename} ({unreadable[0].strerror}), so tidy "
+                       "cannot see what is in it; nothing was removed")
     remove.sort(key=lambda rel: rel == LEDGER)  # the ledger last: a stopped tidy can be finished
     keep.sort(key=REPORT_FILES.index)
     return remove, keep, other
 
 
 def remove_run_files(run: Run, remove: List[str]) -> Tuple[List[str], List[str], str]:
-    """Remove each file only if its path has no link on it; then the emptied folders.
+    """Remove each file only if its path has no link on it, then the emptied folders, then
+    the ledger, so that a tidy that stops before the end leaves a ledger to run it again.
 
     Stops at the first file or folder it cannot remove and says which, so the
     caller can report what was removed before it.
     """
     removed: List[str] = []
     left: List[str] = []
-    for rel in remove:
+
+    def unlink(rel: str) -> str:
         path = run.dir / rel
         try:
             if path.resolve() != path or not stat.S_ISREG(os.lstat(path).st_mode):
                 left.append(f"{rel} (changed into a link, not removed)")
-                continue
+                return ""
             path.unlink()
         except FileNotFoundError:
-            continue
+            return ""
         except OSError as exc:
-            return removed, left, f"could not remove {rel} ({exc.strerror or exc})"
+            return f"could not remove {rel} ({exc.strerror or exc})"
         removed.append(rel)
+        return ""
+
+    for rel in remove:
+        if rel != LEDGER:
+            failure = unlink(rel)
+            if failure:
+                return removed, left, failure
     for sub in ("turns", "diffs", "roles"):
         path = run.dir / sub
         try:
@@ -1731,7 +1780,7 @@ def remove_run_files(run: Run, remove: List[str]) -> Tuple[List[str], List[str],
                 path.rmdir()
         except OSError as exc:
             return removed, left, f"could not remove the empty folder {sub}/ ({exc.strerror or exc})"
-    return removed, left, ""
+    return removed, left, unlink(LEDGER) if LEDGER in remove else ""
 
 
 def worktree_target(run: Run) -> Dict[str, str]:
@@ -1748,11 +1797,14 @@ def worktree_target(run: Run) -> Dict[str, str]:
     def refuse(why: str) -> CctError:
         return CctError(f"--worktree: {why}; nothing was removed")
 
+    finish = (f"if the local branch {branch} remains, delete it with 'git branch -d {branch}' in "
+              "the main checkout after checking it, then run tidy without --worktree")
     if not Path(repo["path"]).is_dir():
-        raise refuse(f"the checkout {repo['path']} is gone; run tidy without --worktree")
+        raise refuse(f"the checkout {repo['path']} is gone; {finish}")
     top = git(repo["path"], "rev-parse", "--show-toplevel", check=False)
     if not top:
-        raise refuse(f"{repo['path']} is not a git checkout")
+        raise refuse(f"{repo['path']} is no longer a git checkout, as after a worktree removal that "
+                     f"stopped part-way: remove what is left of it after checking it; {finish}")
     top_path = Path(top).resolve()
     if run.dir == top_path or top_path in run.dir.parents:
         raise refuse("the run folder is inside the checkout")
@@ -1820,7 +1872,14 @@ def remove_worktree(target: Dict[str, str]) -> None:
     try:
         git(target["main"], "worktree", "remove", target["top"])
     except CctError as exc:
-        raise CctError(f"--worktree: {exc}; nothing was removed") from exc
+        still = any(Path(e["worktree"]).resolve() == Path(target["top"]).resolve()
+                    for e in worktree_entries(target["main"]))
+        if still:  # git refused before it removed anything
+            raise CctError(f"--worktree: {exc}; nothing was removed") from exc
+        raise CctError(f"--worktree: git removed part of the worktree {target['top']} and stopped "
+                       f"({exc}). Remove what is left of it after checking it, delete the branch "
+                       f"with 'git -C {target['main']} branch -d {target['branch']}', then run "
+                       "tidy again without --worktree; the run's files were not touched") from exc
     try:
         git(target["main"], "branch", "-d", target["branch"])
     except CctError as exc:
