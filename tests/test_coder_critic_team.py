@@ -35,8 +35,8 @@ def at(minutes: int) -> str:
     return f"2026-11-09T{14 + minutes // 60:02d}:{minutes % 60:02d}:00Z"
 
 
-def sh(repo: Path, *args: str) -> str:
-    return subprocess.run(["git", "-C", str(repo), *args], check=True,
+def sh(repo: Path, *args: str, check: bool = True) -> str:
+    return subprocess.run(["git", "-C", str(repo), *args], check=check,
                           capture_output=True, text=True).stdout.strip()
 
 
@@ -56,16 +56,25 @@ def commit(repo: Path, message: str) -> None:
 class Driver:
     """Drives a run the way a lead would, failing loudly on any refusal."""
 
-    def __init__(self, base: Path):
+    def __init__(self, base: Path, worktree: bool = False):
+        """With worktree=True the coder works in a linked worktree of relay-main, which
+        pushes to a bare origin.git; otherwise in the main checkout itself."""
         self.repo = base / "relay"
+        self.main = base / "relay-main" if worktree else self.repo
         self.run = base / "runs" / "relay-142"
-        self.repo.mkdir(parents=True)
-        sh(self.repo, "init", "-q", "-b", "main")
-        write_lines(self.repo, "src/relay/delivery/worker.py", 120, "worker")
-        write_lines(self.repo, "src/relay/metrics.py", 40, "metrics")
-        write_lines(self.repo, "README.md", 20, "readme")
-        commit(self.repo, "Initial relay")
-        sh(self.repo, "switch", "-q", "-c", "feat/webhook-retry")
+        self.main.mkdir(parents=True)
+        sh(self.main, "init", "-q", "-b", "main")
+        write_lines(self.main, "src/relay/delivery/worker.py", 120, "worker")
+        write_lines(self.main, "src/relay/metrics.py", 40, "metrics")
+        write_lines(self.main, "README.md", 20, "readme")
+        commit(self.main, "Initial relay")
+        if worktree:
+            sh(base, "init", "-q", "--bare", "origin.git")
+            sh(self.main, "remote", "add", "origin", str(base / "origin.git"))
+            sh(self.main, "push", "-q", "-u", "origin", "main")
+            sh(self.main, "worktree", "add", "-q", "-b", "feat/webhook-retry", str(self.repo), "main")
+        else:
+            sh(self.repo, "switch", "-q", "-c", "feat/webhook-retry")
 
     def call(self, *argv: str) -> str:
         out, err = io.StringIO(), io.StringIO()
@@ -900,9 +909,10 @@ def quiet(func, *argv: str) -> int:
         return func(list(argv))
 
 
-def closed_run(base: Path, outcome: str = "needs_attention", with_pr: bool = True) -> Driver:
+def closed_run(base: Path, outcome: str = "needs_attention", with_pr: bool = True,
+               worktree: bool = False) -> Driver:
     """A short run, closed, with its statistics and both reports in the run folder."""
-    d = Driver(base)
+    d = Driver(base, worktree=worktree)
     d.init()
     (d.run / "turns" / "plan.md").write_text("The plan.\n")
     d.post(5, {"type": "plan", "summary": "s", "units": [{"name": "u", "purpose": "p"}],
@@ -912,6 +922,8 @@ def closed_run(base: Path, outcome: str = "needs_attention", with_pr: bool = Tru
     commit(d.repo, "a")
     d.post(20, {"type": "checkpoint", "title": "a", "final": True, "tests": {"passed": 1, "failed": 0}})
     d.post(24, {"type": "review", "summary": "s", "items": []})
+    if worktree:
+        sh(d.repo, "push", "-q", "-u", "origin", "feat/webhook-retry")
     if with_pr:
         d.post(26, {"type": "pr", "url": "https://github.com/example-owner/relay/pull/1", "number": 1})
         d.post(30, {"type": "review_result", "ran": False, "reason": "skill missing"})
@@ -1007,11 +1019,13 @@ class TidyTest(unittest.TestCase):
                 self.assertIn("nothing was removed", out)
                 self.assertEqual(tree(run), before)
         good = stats.read_text()
-        old = json.loads(good)
+        old, other = json.loads(good), json.loads(good)
         old["run"]["events"] -= 1
+        other["run"]["started_at"] = "2026-11-08T09:00:00Z"
         for name, text, why in (("missing", None, "has no stats.json"),
                                 ("not statistics", "[]", "is not the statistics"),
-                                ("written before the close", json.dumps(old), "written before the run closed")):
+                                ("written before the close", json.dumps(old), "written before the run closed"),
+                                ("from another run", json.dumps(other), "from another run")):
             with self.subTest(f"stats.json {name}"):
                 stats.unlink()
                 if text is not None:
@@ -1042,6 +1056,110 @@ class TidyTest(unittest.TestCase):
         self.assertIn("  turns/0002-coder-plan.json (a link or special file, not followed)", out)
         self.assertEqual(sorted(p.name for p in outside.iterdir()), ["final.patch", "plan.json"])
         self.assertTrue(archive.is_symlink() and (d.run / "diffs").is_symlink())
+
+
+    @unittest.skipIf(not hasattr(os, "geteuid") or os.geteuid() == 0,
+                     "needs a user that read-only folders stop")
+    def test_a_removal_error_reports_what_was_removed(self):
+        d = closed_run(self.base)
+        turns = d.run / "turns"
+        turns.chmod(0o555)
+        try:
+            out = self.tidy(d.run, "--merged")
+        finally:
+            turns.chmod(0o755)
+        self.assertTrue(out.startswith("2\n"), out)
+        self.assertIn("  brief.md\n  diffs/final.patch\n  roles/coder.md", out)
+        self.assertIn("Refused: could not remove turns/0002-coder-plan.json (Permission denied); the "
+                      "files listed above were removed", out)
+        self.assertTrue((d.run / "ledger.jsonl").exists())
+        out = self.tidy(d.run, "--merged")
+        self.assertTrue(out.startswith("0\n"), out)
+        self.assertIn("  turns/0002-coder-plan.json", out)
+        self.assertNotIn("  brief.md", out)
+
+
+class TidyWorktreeTest(unittest.TestCase):
+    """cct.py tidy --worktree removes a clean, merged linked worktree and its local branch."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.base = Path(self.tmp.name)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def tidy(self, d: Driver, *flags: str) -> str:
+        return TidyTest.tidy(self, d.run, "--merged", "--worktree", *flags)
+
+    def branches(self, d: Driver) -> str:
+        return sh(d.main, "branch", "--list", "feat/webhook-retry")
+
+    def assert_removed(self, d: Driver, out: str) -> None:
+        self.assertTrue(out.startswith("0\n"), out)
+        self.assertIn(f"Removed the worktree {d.repo}", out)
+        self.assertFalse(d.repo.exists())
+        self.assertEqual(self.branches(d), "")
+        self.assertEqual(tree(d.run), ["report-t3.html", "report.html", "stats.json",
+                                       "turns", "turns/lead-input.json"])
+        self.assertIn("README.md", os.listdir(d.main))  # the main checkout stays
+
+    def test_removes_the_worktree_and_the_local_branch_only(self):
+        d = closed_run(self.base, worktree=True)
+        pushed = sh(self.base / "origin.git", "rev-parse", "refs/heads/feat/webhook-retry")
+        self.assert_removed(d, self.tidy(d))
+        self.assertEqual(sh(self.base / "origin.git", "rev-parse", "refs/heads/feat/webhook-retry"), pushed)
+
+    def test_a_merged_branch_whose_remote_branch_is_gone_is_removed(self):
+        d = closed_run(self.base, worktree=True)
+        sh(d.main, "merge", "-q", "--ff-only", "feat/webhook-retry")
+        sh(d.main, "push", "-q", "origin", "main", ":feat/webhook-retry")
+        sh(d.main, "fetch", "-q", "--prune")
+        self.assertEqual(sh(d.repo, "rev-parse", "--verify", "--quiet", "feat/webhook-retry@{upstream}",
+                            check=False), "")
+        self.assert_removed(d, self.tidy(d))
+
+    def test_refuses_and_removes_nothing(self):
+        d = closed_run(self.base, worktree=True)
+        head = sh(d.repo, "rev-parse", "HEAD")
+
+        def change(path: str, text: str) -> None:
+            (d.repo / path).write_text(text)
+
+        cases = [
+            ("uncommitted change", lambda: change("src/a.py", "changed\n"),
+             lambda: sh(d.repo, "checkout", "-q", "--", "src/a.py"), "uncommitted changes"),
+            ("untracked file", lambda: change("new.txt", "new\n"),
+             lambda: (d.repo / "new.txt").unlink(), "untracked files (new.txt)"),
+            ("commit after the pr turn", lambda: (change("src/b.py", "b\n"), commit(d.repo, "b")),
+             lambda: sh(d.repo, "reset", "-q", "--hard", head), "the last pr turn recorded"),
+            ("locked", lambda: sh(d.main, "worktree", "lock", str(d.repo)),
+             lambda: sh(d.main, "worktree", "unlock", str(d.repo)), "is locked"),
+            ("not merged where git looks", lambda: (sh(d.main, "push", "-q", "origin", ":feat/webhook-retry"),
+                                                    sh(d.main, "fetch", "-q", "--prune")),
+             lambda: sh(d.repo, "push", "-q", "-u", "origin", "feat/webhook-retry"),
+             "would not delete feat/webhook-retry without force"),
+            ("worktree gone", lambda: sh(d.main, "worktree", "remove", str(d.repo)),
+             lambda: None, "is gone"),
+        ]
+        for name, make, undo, why in cases:
+            with self.subTest(name):
+                make()
+                before = (tree(d.run), d.repo.exists() and tree(d.repo), self.branches(d))
+                out = self.tidy(d)
+                self.assertTrue(out.startswith("2\n"), out)
+                self.assertIn(why, out)
+                self.assertIn("nothing was removed", out)
+                self.assertEqual((tree(d.run), d.repo.exists() and tree(d.repo), self.branches(d)), before)
+                undo()
+
+    def test_the_main_checkout_is_never_removed(self):
+        d = closed_run(self.base)
+        before = tree(d.repo)
+        out = self.tidy(d)
+        self.assertIn("is the repository's main checkout", out)
+        self.assertEqual(tree(d.repo), before)
+        self.assertTrue((d.run / "ledger.jsonl").exists())
 
 
 class RenderEdgeTest(unittest.TestCase):
