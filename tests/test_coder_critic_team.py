@@ -1102,8 +1102,6 @@ class TidyTest(unittest.TestCase):
         self.assertTrue(archive.is_symlink() and (d.run / "diffs").is_symlink())
 
 
-    @unittest.skipIf(not hasattr(os, "geteuid") or os.geteuid() == 0,
-                     "needs a user that read-only folders stop")
     def test_a_folder_that_cannot_be_removed_keeps_the_ledger(self):
         d = closed_run(self.base)
         with mock.patch.object(Path, "rmdir", side_effect=OSError(16, "Device or resource busy")):
@@ -1135,6 +1133,8 @@ class TidyTest(unittest.TestCase):
         self.assertIn("cannot read", out)
         self.assertIn("nothing was removed", out)
 
+    @unittest.skipIf(not hasattr(os, "geteuid") or os.geteuid() == 0,
+                     "needs a user that read-only folders stop")
     def test_a_removal_error_reports_what_was_removed(self):
         d = closed_run(self.base)
         turns = d.run / "turns"

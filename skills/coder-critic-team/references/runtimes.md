@@ -172,7 +172,7 @@ pause inside a tool call for a decision in the Inbox (`request_access`,
 sends anything and fails the task; its requester gets a failure saying that
 the task had already waited five times. Each task has its own five:
 
-- The coder's task: one wait for each escalation at the end of a turn.
+- The coder's task: one wait for each escalation it raises.
 - Each escalation task: one for the critic task you delegate in it, and one
   for each question you ask the person there.
 - Your task for the person's request: one for each coder task you start, each
@@ -194,7 +194,9 @@ the task had already waited five times. Each task has its own five:
      five, a needs_user_input one for a sign-in, an account or a question
      included. Start each one's problem statement with 'Escalation N of 5 in
      this task': N is 1 for the first in a new task, and otherwise one more
-     than the number in the last answer you received. When the answer to
+     than the higher of the number in the last answer you received and the
+     number of your own last escalation, which your newest saved work note
+     shows. When the answer to
      escalation 5 of 5 arrives, finish your task with a task_response that
      names the run folder, without starting that turn, unless it is your pr
      turn. Finish your task after your pr turn too. If an escalation comes
@@ -211,7 +213,9 @@ the task had already waited five times. Each task has its own five:
    coder's escalation task with a `task_response` that starts with "Answer to
    escalation N of 5", with the escalation's number, followed by the coder's
    next handoff unchanged. When the coder is next again at once, answer
-   without delegating.
+   without delegating. Start every other answer to a coder escalation, such
+   as one for a sign-in or a question, with "Answer to escalation N of 5" as
+   well.
 5. You wake when delegated tasks end or the check-back time passes. A missing
    reply shows a transport or responsiveness problem; it does not mean the
    work finished.
