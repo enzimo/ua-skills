@@ -90,8 +90,15 @@ in compact form, shown from its file, and keep `render_report.py` reading
 statistics of schema 1 and 2. Keep its Universal
 Agents mapping limited to the existing `delegate_task` and
 `needs_specialist_support` escalation, per-agent-type model settings,
-`secure_cli` GitHub actions and `notify_user` attachments; a hosted report
-page needs a Universal Agents change first.
+`secure_cli` GitHub actions, the hosted report page published from the run's
+`stats.json` with `publish_single_page_site(site_kind="report",
+site_spec_path=...)`, with the `notify_user` attachment of `report.html` as
+the fallback, and the limit of five waits per task, which the coder's
+numbered escalations and the lead's planned request budget keep. Keep
+`cct.py init` recording the work branch's head as the commit the run starts
+from. Keep `cct.py tidy` for runs whose pull request is merged: it removes
+only the files the ledger names and keeps the report, and with `--worktree`
+only a clean linked worktree and a branch git deletes without force.
 The catalog's `markitdown` skill complements the Universal Agents bundled local
 AnyDoc skill by owning broader formats, URLs, plugins, and OCR-related
 workflows; do not blur that converter boundary with a silent fallback.
