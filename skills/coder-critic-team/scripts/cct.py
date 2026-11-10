@@ -11,6 +11,7 @@ work report shows. Standard library only; Python 3.9 or newer.
     cct.py turn  RUN_DIR --for coder|critic [--full]
     cct.py show  RUN_DIR (--item C03 | --event 12 | --items)
     cct.py stats RUN_DIR [--out stats.json]
+    cct.py tidy  RUN_DIR --merged
 """
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -35,6 +37,8 @@ except ImportError:  # pragma: no cover - non-POSIX hosts
 SCHEMA = 2
 SKILL_DIR = Path(__file__).resolve().parent.parent
 LEDGER = "ledger.jsonl"
+ROLE_FILES = ("protocol.md", "coder.md", "critic.md")
+REPORT_FILES = ("stats.json", "report.html", "report-t3.html")
 
 CORE_LENSES = [
     "intent", "correctness", "security", "scalability", "modularity",
@@ -1024,7 +1028,7 @@ def cmd_init(args: argparse.Namespace) -> None:
         raise CctError(f"{run_dir} is not empty; use a new run folder")
     for sub in ("turns", "diffs", "roles"):
         (run_dir / sub).mkdir(parents=True, exist_ok=True)
-    for name in ("protocol.md", "coder.md", "critic.md"):
+    for name in ROLE_FILES:
         shutil.copyfile(SKILL_DIR / "references" / name, run_dir / "roles" / name)
     (run_dir / "brief.md").write_text(brief_markdown(brief), encoding="utf-8")
     event = {"seq": 1, "ts": now_iso(args.at), "actor": "lead", "type": "brief", "data": brief}
@@ -1051,10 +1055,14 @@ def run_start(repo: Dict[str, Any], existing_pr: bool) -> str:
     if existing_pr:
         # The pull request's branch must not be older here than on the remote,
         # or the remote's commits would count as the run's once the coder pulls.
-        upstream = git(path, "rev-parse", "--verify", "--quiet", f"{branch}@{{upstream}}", check=False)
-        behind = int(git(path, "rev-list", "--count", f"{head}..{upstream}") or 0) if upstream else 0
+        # Compare with the remote branch of the same name, not the upstream: a
+        # branch made from origin/main tracks origin/main until it is pushed with -u.
+        remote = git(path, "config", "--get", f"branch.{branch}.remote", check=False)
+        name = f"{remote if remote not in ('', '.') else 'origin'}/{branch}"
+        theirs = git(path, "rev-parse", "--verify", "--quiet", f"refs/remotes/{name}^{{commit}}",
+                     check=False)
+        behind = int(git(path, "rev-list", "--count", f"{head}..{theirs}") or 0) if theirs else 0
         if behind:
-            name = git(path, "rev-parse", "--abbrev-ref", f"{branch}@{{upstream}}")
             raise CctError(f"brief.repo: the pull request's branch '{branch}' is {behind} commit(s) "
                            f"behind {name}; update it first (for example 'git merge --ff-only "
                            f"{name}'), so the run counts only its own commits")
@@ -1576,6 +1584,136 @@ def cmd_show(args: argparse.Namespace) -> None:
             print(f"{item['id']} {item['round']:<8} {item['severity']:<10} {item['state']:<20} {item['title']}")
 
 
+# ---------------------------------------------------------------------- tidy
+
+LIST_LIMIT = 20  # paths shown of what tidy leaves in place
+
+
+def cmd_tidy(args: argparse.Namespace) -> None:
+    """Remove a merged run's working files; keep stats.json and the rendered reports.
+
+    Every check runs before the first removal, so a refusal removes nothing.
+    """
+    run = tidy_run(Path(args.run_dir), args.merged)
+    remove, keep, other = tidy_targets(run)
+    removed, left = remove_run_files(run, remove)
+    print(f"Removed {len(removed)} file(s) from {run.dir}:")
+    for rel in removed:
+        print(f"  {rel}")
+    print("Kept the report: " + (", ".join(keep) or "nothing"))
+    other += left
+    if other:
+        print(f"Left in place, not written by cct.py ({len(other)}):")
+        for rel in other[:LIST_LIMIT]:
+            print(f"  {rel}")
+        if len(other) > LIST_LIMIT:
+            print(f"  and {len(other) - LIST_LIMIT} more")
+
+
+def tidy_run(run_dir: Path, merged: bool) -> Run:
+    """The run to tidy, or a refusal that says why it may not be tidied."""
+    run_dir = run_dir.resolve()
+    ledger = run_dir / LEDGER
+    if not os.path.lexists(ledger) or not stat.S_ISREG(os.lstat(ledger).st_mode):
+        raise CctError(f"{run_dir} is not a run folder (no {LEDGER}, or it was tidied already); "
+                       "nothing was removed")
+    try:
+        run = Run(run_dir)
+    except CctError as exc:
+        raise CctError(f"{exc}; nothing was removed") from exc
+    if not run.closed:
+        why = "the run is not closed; clean up only a closed run whose pull request is merged"
+    elif not merged:
+        why = ("confirm that the pull request is merged, then add --merged: cct.py cannot check "
+               "the merge, and it never cleans up an unmerged run")
+    elif run.closed["outcome"] == "abandoned":
+        why = "the run was closed as abandoned; leave an abandoned run as it is"
+    elif not run.pr:
+        why = "the run recorded no pull request, so nothing of it was merged"
+    else:
+        why = stats_problem(run)
+    if why:
+        raise CctError(f"{why}; nothing was removed")
+    return run
+
+
+def stats_problem(run: Run) -> str:
+    """Why the run folder's stats.json cannot stand in for the ledger, or an empty string."""
+    path = run.dir / "stats.json"
+    again = f"run 'cct.py stats {run.dir}' first, so the report can be rendered after tidy"
+    if not os.path.lexists(path) or not stat.S_ISREG(os.lstat(path).st_mode):
+        return f"the run folder has no stats.json; {again}"
+    try:
+        events = json.loads(path.read_text(encoding="utf-8"))["run"]["events"]
+    except (ValueError, KeyError, TypeError):
+        events = None
+    if not isinstance(events, int) or isinstance(events, bool):
+        return f"stats.json is not the statistics cct.py writes; {again}"
+    if events != len(run.events):
+        return (f"stats.json counts {events} events and the ledger has {len(run.events)}: it was "
+                f"written before the run closed; {again}")
+    return ""
+
+
+def tidy_targets(run: Run) -> Tuple[List[str], List[str], List[str]]:
+    """Sort the run folder's files: remove, keep (the report) and other.
+
+    Only regular files whose names cct.py or the protocol gave them are
+    removed; the names come from the ledger, not from patterns. Nothing is
+    followed through a link: a link is "other", and so is a linked folder.
+    """
+    names = {"brief.md", LEDGER}
+    names.update(f"roles/{n}" for n in ROLE_FILES)
+    names.update(f"turns/{r}-brief.md" for r in ("coder", "critic"))
+    names.update(f"turns/{r}-next.json" for r in ("coder", "critic", "lead"))
+    for e in run.events[1:]:
+        names.add(f"turns/{e['seq']:04d}-{e['actor']}-{e['type']}.json")
+        if e["type"] == "checkpoint":
+            names.add(e["data"]["git"]["patch"])
+        if e["type"] == "plan" and e["data"].get("plan_file"):
+            names.add(e["data"]["plan_file"])
+    names.difference_update(REPORT_FILES)
+    remove, keep, other = [], [], []
+    for top, dirs, files in os.walk(run.dir):
+        here = Path(top)
+        for d in sorted(dirs):
+            if (here / d).is_symlink():
+                other.append(f"{(here / d).relative_to(run.dir).as_posix()}/ (a link, not followed)")
+        dirs[:] = sorted(d for d in dirs if not (here / d).is_symlink())
+        for f in sorted(files):
+            rel = (here / f).relative_to(run.dir).as_posix()
+            regular = stat.S_ISREG(os.lstat(here / f).st_mode)
+            if regular and rel in names:
+                remove.append(rel)
+            elif regular and rel in REPORT_FILES:
+                keep.append(rel)
+            else:
+                other.append(rel + ("" if regular else " (a link or special file, not followed)"))
+    remove.sort(key=lambda rel: rel == LEDGER)  # the ledger last: a stopped tidy can be finished
+    keep.sort(key=REPORT_FILES.index)
+    return remove, keep, other
+
+
+def remove_run_files(run: Run, remove: List[str]) -> Tuple[List[str], List[str]]:
+    """Remove each file only if its path has no link on it; then the emptied folders."""
+    removed, left = [], []
+    for rel in remove:
+        path = run.dir / rel
+        try:
+            if path.resolve() != path or not stat.S_ISREG(os.lstat(path).st_mode):
+                left.append(f"{rel} (changed into a link, not removed)")
+                continue
+            path.unlink()
+        except FileNotFoundError:
+            continue
+        removed.append(rel)
+    for sub in ("turns", "diffs", "roles"):
+        path = run.dir / sub
+        if path.is_dir() and not path.is_symlink() and not any(path.iterdir()):
+            path.rmdir()
+    return removed, left
+
+
 # --------------------------------------------------------------------- stats
 
 def cmd_stats(args: argparse.Namespace) -> None:
@@ -1852,6 +1990,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     p.add_argument("run_dir")
     p.add_argument("--out")
     p.set_defaults(func=cmd_stats)
+    p = sub.add_parser("tidy", help="after the merge: remove the run's working files, keep the report")
+    p.add_argument("run_dir")
+    p.add_argument("--merged", action="store_true",
+                   help="you confirmed that the run's pull request is merged; tidy refuses without it")
+    p.set_defaults(func=cmd_tidy)
     args = parser.parse_args(argv)
     try:
         args.func(args)

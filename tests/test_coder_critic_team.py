@@ -6,7 +6,9 @@ import contextlib
 import importlib.util
 import io
 import json
+import os
 import re
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -844,12 +846,31 @@ class InitBaseTest(unittest.TestCase):
         diff = json.loads((self.d.run / "stats.json").read_text())["diff"]
         self.assertEqual((diff["commits"], diff["adds"], diff["files"]), (1, 10, 1))
 
-    def test_a_missing_work_branch_is_refused(self):
+    def test_a_missing_work_branch_or_base_is_refused(self):
+        msg = self.d.refused("init", str(self.d.run), "--brief", str(self.d.brief_file(
+            repo={"name": "example-owner/relay", "path": str(self.d.repo), "base": "mian",
+                  "branch": "feat/webhook-retry"})))
+        self.assertIn("the base 'mian' is not a commit", msg)
         sh(self.d.repo, "switch", "-q", "main")
         sh(self.d.repo, "branch", "-q", "-D", "feat/webhook-retry")
         msg = self.d.refused("init", str(self.d.run), "--brief", str(self.d.brief_file()))
         self.assertIn("work branch 'feat/webhook-retry' does not exist", msg)
         self.assertFalse(self.d.run.exists())
+
+    def test_a_pull_request_branch_that_tracks_the_base_is_not_behind(self):
+        repo = self.d.repo
+        sh(repo, "push", "-q", "-u", "origin", "main")
+        sh(repo, "switch", "-q", "-C", "feat/webhook-retry", "origin/main")  # tracks origin/main
+        write_lines(repo, "src/relay/retry.py", 4, "pull request")
+        commit(repo, "The pull request's commit")
+        sh(repo, "push", "-q", "origin", "feat/webhook-retry")  # without -u
+        sh(repo, "switch", "-q", "main")
+        write_lines(repo, "src/relay/metrics.py", 2, "main moves on")
+        commit(repo, "Main moves on")
+        sh(repo, "push", "-q", "origin", "main")
+        sh(repo, "switch", "-q", "feat/webhook-retry")
+        head = sh(repo, "rev-parse", "HEAD")
+        self.assertIn(f"Base commit: {head[:10]}", self.d.init(pull_request={"url": PR_URL, "number": 101}))
 
     def test_a_pull_request_branch_behind_its_remote_is_refused(self):
         repo = self.d.repo
@@ -864,6 +885,163 @@ class InitBaseTest(unittest.TestCase):
         sh(repo, "merge", "-q", "--ff-only", "origin/feat/webhook-retry")
         self.assertIn(f"Base commit: {sh(repo, 'rev-parse', 'HEAD')[:10]}",
                       self.d.init(pull_request={"url": PR_URL, "number": 101}))
+
+
+def tree(root: Path) -> list:
+    """Every path below root, links included and not followed."""
+    out = []
+    for top, dirs, files in os.walk(root):
+        out += [str((Path(top) / n).relative_to(root)) for n in dirs + files]
+    return sorted(out)
+
+
+def quiet(func, *argv: str) -> int:
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        return func(list(argv))
+
+
+def closed_run(base: Path, outcome: str = "needs_attention", with_pr: bool = True) -> Driver:
+    """A short run, closed, with its statistics and both reports in the run folder."""
+    d = Driver(base)
+    d.init()
+    (d.run / "turns" / "plan.md").write_text("The plan.\n")
+    d.post(5, {"type": "plan", "summary": "s", "units": [{"name": "u", "purpose": "p"}],
+               "lenses": LENSES, "checkpoints": ["one"], "plan_file": "turns/plan.md"})
+    d.post(8, {"type": "review", "summary": "s", "items": []})
+    write_lines(d.repo, "src/a.py", 10, "a")
+    commit(d.repo, "a")
+    d.post(20, {"type": "checkpoint", "title": "a", "final": True, "tests": {"passed": 1, "failed": 0}})
+    d.post(24, {"type": "review", "summary": "s", "items": []})
+    if with_pr:
+        d.post(26, {"type": "pr", "url": "https://github.com/example-owner/relay/pull/1", "number": 1})
+        d.post(30, {"type": "review_result", "ran": False, "reason": "skill missing"})
+    if outcome != "abandoned":
+        d.post(31, {"type": "narrative", "summary": "Done."})
+    d.post(32, {"type": "close", "outcome": outcome})
+    d.call("stats", str(d.run))
+    for mode, name in (("page", "report.html"), ("t3", "report-t3.html")):
+        assert quiet(render.main, str(d.run / "stats.json"), "--mode", mode, "--out", str(d.run / name)) == 0
+    return d
+
+
+class TidyTest(unittest.TestCase):
+    """cct.py tidy removes a merged run's working files and keeps the report."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.base = Path(self.tmp.name)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def tidy(self, run: Path, *flags: str) -> str:
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = cct.main(["tidy", str(run), *flags])
+        return f"{code}\n{out.getvalue()}{err.getvalue()}"
+
+    def test_tidy_removes_the_run_files_and_keeps_the_report(self):
+        d = closed_run(self.base)
+        (d.run / "notes.txt").write_text("the lead's own notes\n")
+        (d.run / "turns" / "lead-next.json").write_text("{}\n")  # a turn file nobody posted
+        page = (d.run / "report.html").read_text()
+        before = tree(d.run)
+        out = self.tidy(d.run, "--merged")
+        self.assertTrue(out.startswith("0\n"), out)
+        self.assertEqual(tree(d.run), ["notes.txt", "report-t3.html", "report.html", "stats.json",
+                                       "turns", "turns/lead-input.json"])
+        removed = sorted(set(before) - set(tree(d.run)) - {"roles", "diffs"})
+        self.assertEqual(sorted(line.strip() for line in out.splitlines() if line.startswith("  ")
+                                and line.strip() in removed), removed)
+        for name in ("ledger.jsonl", "brief.md", "roles/critic.md", "turns/coder-brief.md",
+                     "turns/plan.md", "turns/0002-coder-plan.json", "turns/lead-next.json",
+                     "diffs/final.patch"):
+            self.assertIn(name, removed)
+        self.assertLess(out.index("  brief.md"), out.index("  ledger.jsonl"))  # the ledger goes last
+        self.assertIn("Kept the report: stats.json, report.html, report-t3.html", out)
+        self.assertIn("Left in place, not written by cct.py (2):\n  notes.txt\n  turns/lead-input.json", out)
+        # The report renders from what is left, exactly as before.
+        stats = json.loads((d.run / "stats.json").read_text())
+        self.assertEqual(render.render(stats, "page"), page)
+        self.assertIn("is not a run folder", self.tidy(d.run, "--merged"))
+
+    def test_a_tidy_that_stopped_part_way_can_be_finished(self):
+        d = closed_run(self.base)
+        for name in ("roles/protocol.md", "roles/coder.md", "roles/critic.md",
+                     "turns/0002-coder-plan.json", "diffs/final.patch"):
+            (d.run / name).unlink()
+        out = self.tidy(d.run, "--merged")
+        self.assertTrue(out.startswith("0\n"), out)
+        self.assertNotIn("roles/", out)
+        self.assertNotIn("0002-coder-plan.json", out)
+        self.assertIn("  turns/0003-critic-review.json", out)
+        self.assertEqual(tree(d.run), ["report-t3.html", "report.html", "stats.json",
+                                       "turns", "turns/lead-input.json"])
+
+    def test_tidy_refuses_and_removes_nothing(self):
+        empty = self.base / "empty"
+        empty.mkdir()
+        only_stats = self.base / "only-stats"
+        only_stats.mkdir()
+        (only_stats / "stats.json").write_text("{}\n")
+        closed = closed_run(self.base / "closed")
+        open_run = Driver(self.base / "open")
+        open_run.init()
+        abandoned = closed_run(self.base / "abandoned", outcome="abandoned", with_pr=False)
+        no_pr = closed_run(self.base / "no-pr", with_pr=False)
+        stats = closed.run / "stats.json"
+        cases = [
+            ("not a run folder", empty, ("--merged",), "is not a run folder"),
+            ("only statistics", only_stats, ("--merged",), "is not a run folder"),
+            ("not closed", open_run.run, ("--merged",), "the run is not closed"),
+            ("no --merged", closed.run, (), "add --merged"),
+            ("abandoned", abandoned.run, ("--merged",), "closed as abandoned"),
+            ("no pull request", no_pr.run, ("--merged",), "recorded no pull request"),
+        ]
+        for name, run, flags, why in cases:
+            with self.subTest(name):
+                before = tree(run)
+                out = self.tidy(run, *flags)
+                self.assertTrue(out.startswith("2\n"), out)
+                self.assertIn(why, out)
+                self.assertIn("nothing was removed", out)
+                self.assertEqual(tree(run), before)
+        good = stats.read_text()
+        old = json.loads(good)
+        old["run"]["events"] -= 1
+        for name, text, why in (("missing", None, "has no stats.json"),
+                                ("not statistics", "[]", "is not the statistics"),
+                                ("written before the close", json.dumps(old), "written before the run closed")):
+            with self.subTest(f"stats.json {name}"):
+                stats.unlink()
+                if text is not None:
+                    stats.write_text(text)
+                before = tree(closed.run)
+                out = self.tidy(closed.run, "--merged")
+                self.assertIn(why, out)
+                self.assertEqual(tree(closed.run), before)
+                stats.write_text(good)
+
+    def test_tidy_follows_no_link(self):
+        d = closed_run(self.base)
+        outside = self.base / "outside"
+        outside.mkdir()
+        (outside / "final.patch").write_text("keep me\n")
+        (outside / "plan.json").write_text("keep me too\n")
+        archive = d.run / "turns" / "0002-coder-plan.json"
+        archive.unlink()
+        try:
+            os.symlink(outside / "plan.json", archive)
+            shutil.rmtree(d.run / "diffs")
+            os.symlink(outside, d.run / "diffs")
+        except (OSError, NotImplementedError):
+            self.skipTest("links cannot be made here")
+        out = self.tidy(d.run, "--merged")
+        self.assertTrue(out.startswith("0\n"), out)
+        self.assertIn("  diffs/ (a link, not followed)", out)
+        self.assertIn("  turns/0002-coder-plan.json (a link or special file, not followed)", out)
+        self.assertEqual(sorted(p.name for p in outside.iterdir()), ["final.patch", "plan.json"])
+        self.assertTrue(archive.is_symlink() and (d.run / "diffs").is_symlink())
 
 
 class RenderEdgeTest(unittest.TestCase):

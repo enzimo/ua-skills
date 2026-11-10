@@ -106,7 +106,9 @@ loaded this skill from, or in Universal Agents the path
 4. **Relay turns.** After each worker reply:
    1. Record its turn with
       `cct.py post RUN_DIR --actor <role> --file RUN_DIR/turns/<role>-next.json`.
-      A worker's file can hold only that worker's turns.
+      A worker's file can hold only that worker's turns. Write your own
+      turns to `RUN_DIR/turns/lead-next.json` and post them with
+      `--actor lead`. `cct.py post` deletes each `-next.json` file it records.
    2. Read the `Next:`, `Signal:` and `Handoff for the <role>:` lines.
       `cct.py post` has already written the next worker's brief.
    3. Pass the handoff to the named worker unchanged. Do not paste the brief,
@@ -228,7 +230,7 @@ loaded this skill from, or in Universal Agents the path
 - [references/report-design.md](references/report-design.md): the report's
   design. Read it only when changing the report.
 - `scripts/cct.py`: the run ledger. Its commands are `init`, `post`, `state`,
-  `turn`, `show` and `stats`.
+  `turn`, `show`, `stats` and `tidy`.
 - `scripts/render_report.py`: validates `stats.json` and renders it as
   script-free HTML, with `--mode page` or `--mode t3` and, when the default
   does not fit, `--detail full` or `--detail compact`.
