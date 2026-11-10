@@ -1781,11 +1781,17 @@ def worktree_target(run: Run) -> Dict[str, str]:
     merged = subprocess.run(["git", "-C", top, "merge-base", "--is-ancestor", head, against],
                             capture_output=True, check=False).returncode == 0
     if not merged:
-        where = git(top, "rev-parse", "--abbrev-ref", f"{branch}@{{upstream}}") if upstream \
-            else f"the main checkout's HEAD ({main})"
-        raise refuse(f"git would not delete {branch} without force: it is not merged into {where}, "
-                     "as after a squash merge whose remote branch was deleted. Check the branch, "
-                     "then remove the worktree and branch yourself, and run tidy without --worktree")
+        if upstream:
+            where = git(top, "rev-parse", "--abbrev-ref", f"{branch}@{{upstream}}")
+            update = f"fetch it first ('git -C {main} fetch')"
+        else:
+            on = entries[0].get("branch", "").replace("refs/heads/", "") or "a detached HEAD"
+            where = f"the main checkout's HEAD ({on} in {main})"
+            update = f"update {on} there first (for example 'git -C {main} pull --ff-only')"
+        raise refuse(f"git would not delete {branch} without force: it is not merged into {where}. "
+                     f"If the pull request was merged with a merge commit, {update} and run tidy "
+                     "again. After a squash or rebase merge, check the branch, then remove the "
+                     "worktree and branch yourself and run tidy without --worktree")
     return {"top": top, "main": main, "branch": branch}
 
 

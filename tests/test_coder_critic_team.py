@@ -1119,6 +1119,21 @@ class TidyWorktreeTest(unittest.TestCase):
                             check=False), "")
         self.assert_removed(d, self.tidy(d))
 
+    def test_a_main_checkout_behind_the_merge_is_updated_first(self):
+        d = closed_run(self.base, worktree=True)
+        tree_id = sh(d.main, "rev-parse", "feat/webhook-retry^{tree}")
+        merge = sh(d.main, "-c", "user.name=exampleuser", "-c", "user.email=exampleuser@example.com",
+                   "commit-tree", tree_id, "-p", "main", "-p", "feat/webhook-retry", "-m", "Merge #1")
+        sh(d.main, "push", "-q", "origin", f"{merge}:refs/heads/main", ":feat/webhook-retry")
+        sh(d.main, "fetch", "-q", "--prune")  # main in the main checkout is now behind origin/main
+        out = self.tidy(d)
+        self.assertIn("not merged into the main checkout's HEAD (main in", out)
+        self.assertIn(f"update main there first (for example 'git -C {d.main} pull --ff-only')", out)
+        self.assertNotIn("Removed", out)
+        self.assertTrue(d.repo.exists())
+        sh(d.main, "merge", "-q", "--ff-only", "origin/main")
+        self.assert_removed(d, self.tidy(d))
+
     def test_refuses_and_removes_nothing(self):
         d = closed_run(self.base, worktree=True)
         head = sh(d.repo, "rev-parse", "HEAD")
