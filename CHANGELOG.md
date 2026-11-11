@@ -25,6 +25,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   re-checks every finding after the push. The lead hands each worker a
   two-line handoff naming the brief file instead of pasting the brief. The
   in-thread report is a compact form of the whole report, shown from its file.
+  In Universal Agents the lead publishes the report as a hosted page from the
+  run's `stats.json` (`publish_single_page_site` with `site_kind="report"` and
+  `site_spec_path`) and attaches it as a file only when the team's Universal
+  Agents cannot; the turn mapping keeps every task within the runtime's limit
+  of five waits, with numbered coder escalations and a planned budget for the
+  lead's request. `cct.py init` records where the work branch leaves the
+  newer of the base and its remote-tracking branch as the commit the run
+  starts from (an existing pull request's head for one), so a stale local
+  base branch no longer adds other commits to the diffs and totals. Once the pull request is merged,
+  `cct.py tidy` removes the run's working files and keeps the report; with
+  `--worktree` it also removes the coder's clean worktree and merged local
+  branch, never by force.
 
 ### Changed
 

@@ -1,8 +1,10 @@
 # Lead Turns
 
-Record these with `cct.py post RUN_DIR --actor lead --file TURN.json`. Post a
-worker's file with that worker as `--actor`; a worker's file can never carry a
-lead turn. `cct.py` refuses a turn that is out of order or incomplete and says
+Write each of these to `RUN_DIR/turns/lead-next.json` and record it with
+`cct.py post RUN_DIR --actor lead --file RUN_DIR/turns/lead-next.json`.
+`cct.py post` keeps a copy of every recorded turn and deletes the
+`-next.json` file. Post a worker's file with that worker as `--actor`; a
+worker's file can never carry a lead turn. `cct.py` refuses a turn that is out of order or incomplete and says
 why; nothing is recorded when it refuses.
 
 These lead turns are accepted at any point: `intervention`, `note`, `limits`,
@@ -51,6 +53,11 @@ request and a `fix_request` come after it.
   refuses a `pr` turn with another URL. Say in `constraints` what else to do
   with it, such as a new base or labels.
 - The run folder must be new and outside the checkout.
+- Create the work branch before `cct.py init`. It records as the run's start
+  where the branch leaves `base`, or the base's remote-tracking branch when
+  that is newer, and for an existing pull request the pull request's head on
+  the remote. It refuses an existing pull request's branch that is behind its
+  upstream.
 
 ## Intervention
 

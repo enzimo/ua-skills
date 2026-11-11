@@ -1,6 +1,6 @@
 ---
 name: coder-critic-team
-description: This skill should be used when a team lead hands a scoped code change to a supervised pair of agents, a coder that plans and writes all the code and a critic that reviews the plan and every checkpoint for intent, correctness, security, scalability, modularity, unnecessary complexity, concurrency, failure handling and testing. It covers the brief, the turn protocol and run ledger, stall detection and lead rulings, a new or existing pull request, a project-review-process review with one fix round or the fixing and re-checking of an earlier review's findings, and a statistics report shown in T3 Code or as a standalone page. It should not be used for quick single-agent fixes, for reviewing an existing pull request, or for work that produces no code change.
+description: This skill should be used when a team lead hands a scoped code change to a supervised pair of agents, a coder that plans and writes all the code and a critic that reviews the plan and every checkpoint for intent, correctness, security, scalability, modularity, unnecessary complexity, concurrency, failure handling and testing. It covers the brief, the turn protocol and run ledger, stall detection and lead rulings, a new or existing pull request, a project-review-process review with one fix round or the fixing and re-checking of an earlier review's findings, a statistics report shown in T3 Code, as a hosted page in Universal Agents or as a standalone page, and the clean-up of a run after its pull request is merged. It should not be used for quick single-agent fixes, for reviewing an existing pull request, or for work that produces no code change.
 ---
 
 # Coder-Critic Team
@@ -66,8 +66,8 @@ loaded this skill from, or in Universal Agents the path
   or the run is closed as `needs_attention` or `blocked`. Non-blocking
   findings are filed or proposed as issues.
 - Each acceptance criterion has a status and evidence.
-- The report is where the person will see it: inline in T3 Code, or as a
-  standalone file elsewhere.
+- The report is where the person will see it: inline in T3 Code, a hosted
+  page in Universal Agents, or a standalone file elsewhere.
 
 ## Procedure
 
@@ -87,7 +87,14 @@ loaded this skill from, or in Universal Agents the path
 2. **Prepare the run.** Create the work branch and a worktree for the coder,
    and a new run folder outside the checkout. Then run
    `cct.py init RUN_DIR --brief brief.json`. This records the brief and copies
-   `protocol.md`, `coder.md` and `critic.md` into `RUN_DIR/roles/`.
+   `protocol.md`, `coder.md` and `critic.md` into `RUN_DIR/roles/`. It records
+   the commit the run starts from and prints it: where the work branch
+   leaves the base, or the base's remote-tracking branch when that is newer.
+   Checkpoint diffs and the report count the commits after it, so commits
+   already on the branch reach the critic in the first checkpoint. For an
+   existing pull request the run starts at the pull request's head on the
+   remote; bring the local branch up to date first, as `init` refuses a
+   branch that is behind.
 
    When a project review already ran and this run fixes its findings, record
    it now as a `review_result` with `"stage": "before_run"`. The workers'
@@ -102,7 +109,9 @@ loaded this skill from, or in Universal Agents the path
 4. **Relay turns.** After each worker reply:
    1. Record its turn with
       `cct.py post RUN_DIR --actor <role> --file RUN_DIR/turns/<role>-next.json`.
-      A worker's file can hold only that worker's turns.
+      A worker's file can hold only that worker's turns. Write your own
+      turns to `RUN_DIR/turns/lead-next.json` and post them with
+      `--actor lead`. `cct.py post` deletes each `-next.json` file it records.
    2. Read the `Next:`, `Signal:` and `Handoff for the <role>:` lines.
       `cct.py post` has already written the next worker's brief.
    3. Pass the handoff to the named worker unchanged. Do not paste the brief,
@@ -182,17 +191,41 @@ loaded this skill from, or in Universal Agents the path
     4. Where the runtime allows, mark the draft pull request ready once no
        blocking finding is open.
 
-11. **Report.** Run `cct.py stats RUN_DIR`. Then render:
+11. **Report.** Run `cct.py stats RUN_DIR`. Universal Agents publishes the
+    report from that `stats.json` as a hosted page. Elsewhere, render it:
     - `render_report.py RUN_DIR/stats.json --mode page --out RUN_DIR/report.html`;
     - in T3 Code, also `--mode t3 --out RUN_DIR/report-t3.html`. This is the
       compact view: every section and chart, with the long texts shortened.
 
     Deliver it as [references/runtimes.md](references/runtimes.md) describes:
-    inline with `html_render` and the file's path in T3 Code, attached as a
-    file in Universal Agents, or as a file path elsewhere. Show the whole
-    report; never split it or rebuild parts of it by hand. Give the person three to five lines:
-    the outcome, the pull request link, what needs their decision, and where
-    the report is.
+    inline with `html_render` and the file's path in T3 Code, as a hosted page
+    in Universal Agents (attached as a file when the team's Universal Agents
+    cannot publish it), or as a file path elsewhere. Show the whole report;
+    never split it or rebuild parts of it by hand. Give the person three to
+    five lines: the outcome, the pull request link, what needs their
+    decision, and where the report is.
+
+12. **Clean up after the merge.** Leave the run as it is until its pull
+    request is merged, often later, when the person says so. Leave an
+    unmerged or abandoned run alone.
+    1. Confirm the merge as [references/runtimes.md](references/runtimes.md)
+       describes. `--merged` says you did; `cct.py` cannot check it.
+    2. Run `cct.py tidy RUN_DIR --merged`. Add `--worktree` when the coder
+       worked in a linked worktree made for the run, after `git fetch` in
+       the main checkout so git sees the merge. `tidy` removes the
+       run's working files, the ledger last, and keeps `stats.json` and the
+       rendered reports. With `--worktree` it also removes that worktree,
+       with its ignored files such as build output, and the local work
+       branch, never the remote one.
+    3. Read what it lists as left in place: those files are not the run's.
+       Then remove what else your runtime lists.
+
+    `tidy` refuses, and removes nothing, for a run that is not closed, was
+    abandoned or has no pull request, without `--merged`, or when
+    `stats.json` is missing or does not match the ledger. With `--worktree`
+    it also refuses a main checkout, a locked or changed worktree, a head
+    other than the last `pr` turn's, and a branch git would not delete
+    without force. Its message says what to do.
 
 ## Failure recovery
 
@@ -206,6 +239,7 @@ loaded this skill from, or in Universal Agents the path
 | A finding stays open on purpose | Record it `open` with a note. The report shows the note and does not count it as a gap. `ready_to_merge` still needs a follow-up, an accepted risk or a fix for it. |
 | A blocking finding is still open after the fix round | Close as `needs_attention` or `blocked` and say what is left. Start another round only when the person asks; record a `limits` turn first. |
 | The person changes the goal mid-run | Close the run as `abandoned` with a note. Start a new run with a new brief from the current branch. |
+| `cct.py tidy` refuses or stops | A refusal removed nothing; a stopped tidy lists what it removed. Do what the message says and run it again. Do not work around a refusal by deleting the files yourself. |
 | The run must stop early | Close at any point: `abandoned`, or `blocked` or `needs_attention` after a narrative. Then still render the report; it shows what was done and what is missing. |
 
 ## Resources
@@ -224,7 +258,7 @@ loaded this skill from, or in Universal Agents the path
 - [references/report-design.md](references/report-design.md): the report's
   design. Read it only when changing the report.
 - `scripts/cct.py`: the run ledger. Its commands are `init`, `post`, `state`,
-  `turn`, `show` and `stats`.
+  `turn`, `show`, `stats` and `tidy`.
 - `scripts/render_report.py`: validates `stats.json` and renders it as
   script-free HTML, with `--mode page` or `--mode t3` and, when the default
   does not fit, `--detail full` or `--detail compact`.
