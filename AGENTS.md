@@ -82,7 +82,9 @@ critic maintains, which the lead rules on; the lead is the only ledger writer
 and hands each worker the brief file `cct.py` wrote, by its path and
 unchanged. Keep the two ways a run meets a review working: a review of the
 new pull request, and a review from before the run whose findings the run
-fixes on an existing pull request and the lead re-checks. Keep every report
+fixes on an existing pull request and the lead re-checks. A fix round may
+take any open review finding, and its `note` reaches both workers' briefs.
+Keep every report
 number computed by `cct.py stats`, the report script-free, and
 `references/report-design.md`, `assets/report.css` and
 `scripts/render_report.py` in step. Keep the in-thread report the whole report

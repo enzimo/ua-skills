@@ -596,6 +596,46 @@ class ProtocolRefusalTest(unittest.TestCase):
         self.assertIn("before the pull request turn", self.post_refused(late))
         self.d.post(30, {"type": "close", "outcome": "needs_attention"})
 
+    def test_a_fix_round_can_take_other_open_findings_and_its_note_reaches_both_briefs(self):
+        self.build_to_final()
+        self.d.post(25, {"type": "response", "decisions": acc("C01")})
+        self.d.post(26, {"type": "pr", "url": "https://github.com/example-owner/relay/pull/1"})
+        self.d.post(30, {"type": "review_result", "verdict": "approve_with_changes",
+                         "reviewers": ["General reviewer"],
+                         "findings": [{"severity": "blocking", "title": "Crash on None"},
+                                      {"severity": "should_fix", "title": "Slow on large input"},
+                                      {"severity": "consider", "title": "Name the constant"}]})
+        self.d.post(31, {"type": "finding_update", "updates": [
+            {"finding": "F3", "status": "proposed", "note": "A later change."}]})
+        msg = self.post_refused({"type": "fix_request", "findings": ["F1", "F3"]})
+        self.assertIn("F3 is not an open review finding", msg)
+        self.assertIn("F9 is not an open review finding",
+                      self.post_refused({"type": "fix_request", "findings": ["F9"]}))
+        self.d.post(32, {"type": "fix_request", "findings": ["F1", "F2"],
+                         "note": "Fix F2 the simple way; leave the cache alone."})
+        state = json.loads(self.d.call("state", str(self.d.run), "--json"))
+        self.assertNotIn("finding_update", [e["type"] for e in state["expect"]])  # F2 is no follow-up yet
+        coder = (self.d.run / "turns" / "coder-brief.md").read_text()
+        self.assertIn("Lead's note on this round: Fix F2 the simple way", coder)
+        self.assertIn("**F1**", coder)
+        self.assertIn("**F2**", coder)
+        self.assertNotIn("**F3**", coder)
+        self.assertNotIn("blocking project-review findings", coder)
+        write_lines(self.d.repo, "src/a.py", 1, "fix")
+        commit(self.d.repo, "fix")
+        self.d.post(34, {"type": "checkpoint", "title": "fix", "addresses": ["F1", "F2"],
+                         "tests": {"passed": 2, "failed": 0}})
+        critic = (self.d.run / "turns" / "critic-brief.md").read_text()
+        self.assertIn("Lead's note on this round: Fix F2 the simple way", critic)
+        self.d.post(35, {"type": "review", "summary": "s", "items": []})
+        self.d.post(36, {"type": "pr", "url": "https://github.com/example-owner/relay/pull/1",
+                         "update": True})
+        self.d.post(37, {"type": "finding_update", "updates": [
+            {"finding": "F1", "status": "fixed", "evidence": "test_none passes"},
+            {"finding": "F2", "status": "fixed", "evidence": "1e6 items in 0.2 s"}]})
+        state = json.loads(self.d.call("state", str(self.d.run), "--json"))
+        self.assertNotIn("fix_request", [e["type"] for e in state["expect"]])
+
     def test_limits_allow_another_fix_round(self):
         self.build_to_final()
         self.d.post(25, {"type": "response", "decisions": acc("C01")})
