@@ -167,8 +167,10 @@ loaded this skill from, or in Universal Agents the path
    `open` with a note saying what is left. A new review of the pull request
    is then optional; record it as a second `review_result` when you run one.
 
-8. **Fix blocking findings once.** For open blocking findings:
-   1. Record a `fix_request`.
+8. **Fix findings once.** For open blocking findings, and any other open
+   finding worth fixing in the same round:
+   1. Record a `fix_request` naming them. Put any instruction for the round
+      in its `note`; both workers' briefs show it.
    2. The coder fixes them in a checkpoint, the critic reviews it, and the
       coder pushes and records a `pr` update.
    3. Re-check each finding against its scenario: read the fix, run the test

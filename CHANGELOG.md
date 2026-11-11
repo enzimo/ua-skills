@@ -12,8 +12,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   coder answers each critique, the critic gets one last word, and a maintained
   blocking critique goes to the lead. The coder then builds in committed
   checkpoints that the critic reviews, opens the pull request, and the lead
-  runs `project-review-process`, sends blocking findings back for one fix
-  round and files the rest as issues. `scripts/cct.py` keeps the run ledger,
+  runs `project-review-process`, sends blocking findings, and any other open
+  finding worth fixing now, back for one fix round with the lead's note in both
+  workers' briefs, and files the rest as issues. `scripts/cct.py` keeps the run ledger,
   says whose turn it is, writes each worker's turn brief and computes the
   statistics; `scripts/render_report.py` validates those statistics and renders
   a script-free report with its own design (`references/report-design.md`),

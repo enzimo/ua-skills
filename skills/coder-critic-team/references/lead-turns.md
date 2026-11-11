@@ -163,9 +163,14 @@ review right after `cct.py init`, before the coder's plan:
 
 ## Fix request
 
-`{"type": "fix_request", "findings": ["F1"], "note": "Fix only F1."}`
-Send one or more open blocking findings once the pull request turn is recorded
-and no coder-critic turn is pending.
+`{"type": "fix_request", "findings": ["F1", "F2"], "note": "Fix F2 without a new dependency."}`
+Send one or more open findings once the pull request turn is recorded and no
+coder-critic turn is pending: every open blocking finding you want fixed, and
+any other open finding worth fixing in the same round. A finding already
+`proposed`, filed or decided is not open; record it `open` again first. The
+coder's fix brief lists exactly these findings and tells it to change nothing
+else, and both workers' briefs show the `note`, so put any instruction for the
+round there. After the round, give every finding it named a status.
 `limits.fix_rounds` (default 1) caps the rounds; raise it with a `limits`
 turn when the person asks for another. A finding still `open` after a round
 can be sent again.

@@ -272,6 +272,7 @@ class Run:
         self.limits: Dict[str, Any] = dict(self.brief.get("limits") or {})
         self.fix_rounds = 0
         self.in_fix = False
+        self.fix_note = ""  # the lead's note on the current fix round, shown in its briefs
         self.pr: Optional[Dict[str, Any]] = None
         self.reviews: List[Dict[str, Any]] = []
         self.acceptance: Optional[Dict[str, Any]] = None
@@ -359,6 +360,7 @@ class Run:
         elif kind == "fix_request":
             self.fix_rounds += 1
             self.in_fix = True
+            self.fix_note = data.get("note", "")
             for fid in data["findings"]:
                 self.findings[fid]["fix_round"] = self.fix_rounds
                 self.findings[fid].pop("rechecked", None)
@@ -467,7 +469,7 @@ class Run:
                        if c["round"] == base or c["round"].startswith(base + "-")]
             if not fix_cps:
                 return [{"actor": "coder", "type": "checkpoint", "round": base,
-                         "why": "fix the requested blocking findings"}]
+                         "why": "fix the requested findings"}]
             if (self.pr or {}).get("updated_seq", 0) < self.checkpoints[-1]["seq"]:
                 return [{"actor": "coder", "type": "checkpoint", "round": self.checkpoint_round(False),
                          "why": "only if you changed code since the critic's review"},
@@ -498,8 +500,10 @@ class Run:
         if blocking and self.fix_rounds < int(self.limit("fix_rounds", 1)):
             todo.append({"actor": "lead", "type": "fix_request", "items": blocking,
                          "why": "or record them as accepted_risk, or close as blocked"})
+        in_round = set(self.unchecked_fix_findings()) if self.in_fix else set()
         unfiled = [fid for fid in self.undecided()
-                   if self.findings[fid]["severity"] != "blocking" and fid not in stale]
+                   if self.findings[fid]["severity"] != "blocking" and fid not in stale
+                   and fid not in in_round]
         if unfiled:
             todo.append({"actor": "lead", "type": "finding_update", "items": unfiled,
                          "why": "file or propose follow-ups for non-blocking findings"})
@@ -849,9 +853,12 @@ def check_turn(run: Run, turn: Dict[str, Any], actor: str
         if run.fix_rounds >= int(run.limit("fix_rounds", 1)):
             raise CctError(f"{where}: the brief allows {run.limit('fix_rounds', 1)} fix round(s); "
                            "raise the limit with a 'limits' turn first")
+        ids = list(dict.fromkeys(ids))
         for fid in ids:
-            if fid not in run.blocking_open():
-                raise CctError(f"{where}: {fid} is not an open blocking finding")
+            # Any open finding: the blocking ones must be fixed, and the lead may add
+            # others that are worth fixing in the same round.
+            if fid not in run.findings or run.findings[fid]["status"] != "open":
+                raise CctError(f"{where}: {fid} is not an open review finding")
         data["findings"] = ids
         data["note"] = text_of(turn, "note", where)
 
@@ -1404,7 +1411,7 @@ def turn_section(run: Run, role: str, e: Dict[str, Any]) -> List[str]:
         for dev in d.get("deviations", []):
             lines.append(f"- Deviation from plan: {dev}")
         if e["round"].startswith("fix"):
-            lines += ["", "This round fixes these project-review findings:"]
+            lines += ["", "This round fixes these project-review findings:"] + fix_note_lines(run)
             lines += [finding_line(run.findings[f]) for f in fix_findings(run)]
         elif d.get("addresses"):
             lines += ["", "The coder says this checkpoint fixes these review findings. Check each "
@@ -1437,8 +1444,9 @@ def turn_section(run: Run, role: str, e: Dict[str, Any]) -> List[str]:
                 + [item_line(run.items[i]) for i in e["items"]] + [""])
     if t == "checkpoint":
         if e["round"].startswith("fix") and e.get("why", "").startswith("fix"):
-            return (["Fix these blocking project-review findings, commit, and record a checkpoint. "
-                     "Change nothing else.", ""] + [finding_line(run.findings[f]) for f in fix_findings(run)]
+            return (["Fix these project-review findings, commit, and record a checkpoint that "
+                     "lists them in \"addresses\". Change nothing else.", ""]
+                    + fix_note_lines(run) + [finding_line(run.findings[f]) for f in fix_findings(run)]
                     + [""])
         if e.get("why", "").startswith("only if"):
             return ["If you changed code since the critic's last review, commit it and record a "
@@ -1550,6 +1558,11 @@ def whole_start(run: Run) -> str:
     """Where the change that will ship starts: an existing pull request's own start, else the run's."""
     repo = run.brief["repo"]
     return repo.get("pr_base_sha") or repo["base_sha"]
+
+
+def fix_note_lines(run: Run) -> List[str]:
+    """The lead's note on the fix round, for both workers' briefs (nothing when it gave none)."""
+    return [f"Lead's note on this round: {run.fix_note}", ""] if run.fix_note else []
 
 
 def fix_findings(run: Run) -> List[str]:
