@@ -10,6 +10,10 @@ also has its own role file next to this one.
   right worker, records every turn in the ledger, and steps in when the pair is
   stuck. Rules on a blocking critique the critic maintains after the coder
   rejected it. Runs the project review and reports.
+  Explains important discoveries and decisions to the user promptly, with
+  evidence, impact and viable choices where applicable. Gets the user's
+  decision before work depends on a choice outside the authorized brief;
+  pair agreement does not replace that decision.
 - **Coder.** Writes every line that goes into the pull request. Plans first,
   then builds in checkpoints. Has the final say on every critique except a
   maintained blocking one.

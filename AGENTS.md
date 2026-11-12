@@ -76,8 +76,12 @@ effect authority, integration, or final verification.
 Keep durable-lesson guidance aligned with knowledge search, pages and notes.
 Preserve review of team contributions made for a person.
 The catalog includes `coder-critic-team` for supervised coder-and-critic
-implementation. Keep its protocol, `scripts/cct.py` validation and the role
-files consistent: the coder decides every critique except a blocking one the
+implementation. Keep important discoveries visible to the user as they arise,
+with evidence, impact, choices and a recommendation where applicable. Require
+the user's decision before dependent work exceeds the authorized brief;
+preserve routine technical decisions within it. Pair agreement and a final
+report do not replace timely communication. Keep its protocol, `scripts/cct.py`
+validation and the role files consistent: the coder decides every critique except a blocking one the
 critic maintains, which the lead rules on; the lead is the only ledger writer
 and hands each worker the brief file `cct.py` wrote, by its path and
 unchanged. Keep the two ways a run meets a review working: a review of the

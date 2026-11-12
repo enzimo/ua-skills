@@ -40,6 +40,11 @@ For each critique:
   acceptance criterion.
 - An empty review is a valid review when nothing needs to change.
 
+Flag important discoveries and user decisions to the lead promptly, even when
+agreeing with the coder or finding no blocking defect. Explain the evidence,
+uncertainty, impact and viable choices; keep critique severity based on the
+defect, rather than raising it solely to get the user's attention.
+
 ## Disagreements
 
 The coder decides. When the coder rejects a plan critique, you get one last

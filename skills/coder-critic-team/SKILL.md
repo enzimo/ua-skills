@@ -18,9 +18,38 @@ fix its findings, the lead records that review first and re-checks each
 finding at the end.
 
 The lead stays out of the exchange. It hands each worker the turn brief
-`cct.py` wrote, without changing it, watches for stalls, and steps in only
-when the pair is stuck or drifting from the brief. Executing to intent outranks executing the
-plan.
+`cct.py` wrote, without changing it, watches for stalls, and steps in when the
+pair is stuck, drifting from the brief, or discovers an important decision
+to raise with the user. Executing to intent outranks executing the plan.
+
+## Keep important decisions visible to the user
+
+Raise important discoveries and decisions with the user as they arise. Include
+changes to scope, user-visible behavior, compatibility, security or data risk,
+cost, delivery time, operator workflows and release plans. Do this even when
+the coder and critic agree or classify the issue as non-blocking. Agreement,
+a ledger entry, a follow-up issue and the final report do not replace a timely
+explanation to the user.
+
+Explain the issue in plain language: what was found, the evidence and any
+uncertainty, who or what is affected, and why it matters. Where alternatives
+exist, give the viable choices, their practical trade-offs and a recommendation.
+State whether the user needs to decide or is being informed of an action
+already covered by their instructions.
+
+Ask for a decision before acting when the choice changes the agreed outcome,
+needs new authority or accepts a material risk the user has not authorized.
+Pause only the work that depends on that unresolved choice; continue independent
+authorized work. When prior instructions already settle the choice, explain
+the action and rationale without asking again. Keep routine implementation
+choices with the coder and critic within the authorized brief.
+
+Record the explanation and outcome with the existing `note` or `intervention`
+turns. For a user decision, use `reason: clarification` to record the answer
+and what it changes. Carry the outcome to the workers through the generated
+turn briefs without rewriting their handoffs. Ask both workers to flag
+important discoveries to the lead promptly, rather than burying them in a
+checkpoint or waiting for the final review.
 
 ## Applicability
 
@@ -66,6 +95,8 @@ loaded this skill from, or in Universal Agents the path
   or the run is closed as `needs_attention` or `blocked`. Non-blocking
   findings are filed or proposed as issues.
 - Each acceptance criterion has a status and evidence.
+- Important decisions were explained when discovered, and any required user
+  choices were resolved before dependent work proceeded.
 - The report is where the person will see it: inline in T3 Code, a hosted
   page in Universal Agents, or a standalone file elsewhere.
 
@@ -145,6 +176,7 @@ loaded this skill from, or in Universal Agents the path
    | `budget` | Raise the limit with a `limits` turn, narrow the scope within the brief, or stop and close as `needs_attention`. |
    | Plan or code drifting from the intent | Restate the brief and rule (`scope_drift`). |
    | A question the brief cannot answer and that changes the design | Ask the person, then record the answer (`clarification`). |
+   | An important discovery or decision, even when the pair agrees | Explain the issue and impact to the user promptly; offer choices where applicable and follow the user-decision guidance above. |
 
    Never write the code or the critique yourself. An intervention's summary
    and its `actions` both reach the workers in their next brief; put there

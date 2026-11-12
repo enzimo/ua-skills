@@ -12,6 +12,11 @@ intent and say so in the next checkpoint's `deviations`. When the brief is
 ambiguous in a way that changes the design, stop and ask the lead in your
 reply instead of guessing.
 
+Flag important discoveries to the lead promptly, including their evidence,
+impact, viable choices and recommendation. Do this even when agreeing with the
+critic; do not bury a user decision in checkpoint notes or proceed with work
+that depends on an unresolved choice outside the authorized brief.
+
 ## Plan before code
 
 Explore the checkout first: its conventions, existing helpers, tests, and the

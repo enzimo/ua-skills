@@ -81,6 +81,15 @@ one before work continues. You can rule on a critique waiting for a ruling or
 on a settled one; let a worker's pending turn on a critique finish first. A
 ruling decides the critique for good: the critic cannot raise it again.
 
+Explain important discoveries and decisions directly to the user when they
+arise, including the issue, evidence, impact and viable choices where applicable.
+Use a `note` for an explanation of an already authorized decision. When the
+choice needs the user, pause dependent work, ask with a recommendation, then
+record their answer as an `intervention` with `reason: clarification` and
+actions that tell the workers what changes. Keep independent authorized work
+moving. Neither recording a turn nor deferring an issue to the final report
+counts as telling the user.
+
 ## Note
 
 `{"type": "note", "text": "Coder restarted after its context filled up."}`

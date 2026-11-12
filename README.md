@@ -124,6 +124,10 @@ creating a duplicate.
 
 ## 🎯 Guiding Principles
 
+- **Important Decisions:** In `coder-critic-team`, explain important discoveries
+  and decisions to the user promptly, with evidence, impact and viable choices
+  where applicable. Ask before dependent work exceeds the authorized brief;
+  continue independent authorized work and avoid repeated approval questions.
 - **No Fixes Without Root Cause First:** When resolving bugs, developers and agents must trace the data flow to the original trigger and write a reproducing test case before attempting any fixes. Refer to Systematic Debugging for more details.
 - **Procedural Anchoring:** Use concrete examples to capture the workflow, then retain the decisions, sequence, checks, and recovery guidance that make repeated execution reliable. Keep generic facts and copied manuals out of the entrypoint.
 - **Behavioral Verification:** Compare observable task outcomes when materially revising a skill. Include similar-skill distractors and out-of-scope near-misses when routing quality matters; treat structural validation as a packaging gate rather than proof of skill quality.
