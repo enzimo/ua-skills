@@ -106,6 +106,13 @@ The catalog's `markitdown` skill complements the Universal Agents bundled local
 AnyDoc skill by owning broader formats, URLs, plugins, and OCR-related
 workflows; do not blur that converter boundary with a silent fallback.
 
+Keep skill security checks in Universal Agents' built-in reviewed installation
+workflow, documented by `runtime-operations-workflows`, rather than a parallel
+catalog installer. Preserve the required SkillSpector baseline, optional
+task-model assessment, content-bound approval and broker-owned model keys.
+Keep local-only evaluation available without model configuration; never
+downgrade a selected model's failed assessment to a passing static-only plan.
+
 ## Core Rules for Agents
 
 1. **Systematic Debugging:**
