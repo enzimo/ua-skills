@@ -41,6 +41,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `gog` and `user-onboarding-guide` say that Web Chat now shows the secure
+  broker's pages inside the chat (with **Open in its own tab** and **Decline**),
+  while other chats still get a link; Google's own sign-in still opens in a new
+  tab.
 - `user-onboarding-guide` handles the refusals Universal Agents 0.10 gives a
   request whose memory fact someone else changed while it ran: after
   `change_conflict` or `needs_person_decision` it does not save the tour

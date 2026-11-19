@@ -74,7 +74,7 @@ page with a countdown; the assistant never sees the secret.
 In Telegram and Discord, `/link` also offers a menu of tools.
 
 ```text
-🔐 I will never ask you to paste a password or token into chat. To connect a service, use `/link cli:github`, `/link cli:google` or `/link cli:x`. Each opens a secure page with a short countdown, and your secret goes straight into protected storage. `/auth` shows what you're signed in to.
+🔐 I will never ask you to paste a password or token into chat. To connect a service, use `/link cli:github`, `/link cli:google` or `/link cli:x`. Each opens a secure page with a short countdown (in Web Chat it appears right here in the chat), and your secret goes straight into protected storage. `/auth` shows what you're signed in to.
 ```
 
 ## inbox
