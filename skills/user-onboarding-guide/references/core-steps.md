@@ -23,8 +23,12 @@ for each busy specialist.
 **Web Chat only.** Give a quick map, then say each later step will point to
 where its feature lives.
 
-- Left sidebar: **New Chat** starts a fresh thread; your past threads are
-  listed below it, each with a pencil to rename and a button to archive.
+- Left sidebar: **New Chat** starts a fresh thread; your threads are listed
+  below it. From Universal Agents 0.10 they are in sections (**Needs you**,
+  **Pinned**, **Recent**, **Snoozed**, **Dismissed**): right-click a thread
+  (press and hold on a phone) to pin, snooze, dismiss, rename or delete it,
+  and resting the mouse on one shows its last few messages. Before 0.10,
+  each thread has a pencil to rename it and a button to archive it.
 - The ⚙ **Settings** button at the top of the sidebar opens the tabs
   **Inbox**, **Access**, **Accounts**, **Team**, **Tasks**, **Memories** and
   **Appearance**. **Accounts** shows whose account agents use for each service:
