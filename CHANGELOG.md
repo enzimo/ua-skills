@@ -44,8 +44,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `user-onboarding-guide` describes Web Chat's thread list as Universal Agents
   0.10 shows it: sections (Needs you, Pinned, Recent, Snoozed, Dismissed), a
   menu on right-click or press and hold to pin, snooze, dismiss, rename or
-  delete a thread, and a hover preview of its last messages. Rename and delete
-  are no longer buttons on each thread.
+  delete a thread, and a hover preview of its last messages. It keeps the
+  pencil and archive buttons for instances before 0.10.
 
 - `user-onboarding-guide` handles the refusals Universal Agents 0.10 gives a
   request whose memory fact someone else changed while it ran: after
