@@ -5,6 +5,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- `long-horizon-plan-execution`: the Universal Agents runtime mapping says a
+  work-session step that pauses for a person's decision at its boundary keeps
+  its pause and ends the session with the runtime's degraded checkpoint
+  (Universal Agents pull request 158).
+
 ### Added
 
 - `coder-critic-team` runs a code change with a lead, a coder and a critic. The
