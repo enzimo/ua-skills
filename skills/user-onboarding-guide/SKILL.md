@@ -167,7 +167,8 @@ pointing to the docs and saying they can ask about any topic at any time.
   about something the references do not cover, check `/help` output or the
   docs instead of guessing.
 - Never ask for a password, token or key in chat. Point to `/link` or `/auth`,
-  which open a secure form.
+  which open a secure form: in Web Chat it appears right inside the chat (with
+  **Open in its own tab** and **Decline**), in other chats as a link.
 - Describe what happens, not internal names: say "an administrator approves it
   in the Inbox", not tool or service names.
 

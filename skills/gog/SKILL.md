@@ -198,9 +198,10 @@ warning during consent. Do not describe an In Production refresh token as
 permanent: Google may still revoke it after password changes, manual
 revocation, prolonged inactivity, or other account security events.
 
-Use the primary broker page to start `gog auth add --manual --force-consent`.
+Use the primary broker page to start `gog auth add --manual --force-consent`
+(in Web Chat it appears inside the chat card; other chats give a link to it).
 Wait for its disabled **Wait...** button to become **Open**, then open Google
-in the new tab. Direct the user to paste the complete localhost or 127.0.0.1
+in the new tab it opens; Google's own pages cannot be shown inside the chat. Direct the user to paste the complete localhost or 127.0.0.1
 callback URL from their browser into the broker page. This manual handoff
 performs the same OAuth code exchange as an automatic desktop callback. The
 token lifetime is determined by Google's project publishing status when the
