@@ -27,8 +27,15 @@ where its feature lives.
   below it. From Universal Agents 0.10 they are in sections (**Needs you**,
   **Pinned**, **Recent**, **Snoozed**, **Dismissed**): right-click a thread
   (press and hold on a phone) to pin, snooze, dismiss, rename or delete it,
-  and resting the mouse on one shows its last few messages. Before 0.10,
-  each thread has a pencil to rename it and a button to archive it.
+  and resting the mouse on one shows its last few messages. Each thread's
+  second line starts with a short row of triangles, one per turn: grey for
+  the person's requests, then one for each kind of agent that worked on it,
+  in the same colours as the triangle pattern at the bottom of the sidebar
+  (gold for the team lead). The ones working now glow, and the line names
+  them, for example "Web Research Agent working"; a dotted first triangle
+  means older turns are hidden. Before 0.10, each thread has a pencil to
+  rename it and a button to archive it, and a pulsing dot marks a chat the
+  agent is replying in.
 - The ⚙ **Settings** button at the top of the sidebar opens the tabs
   **Inbox**, **Access**, **Accounts**, **Team**, **Tasks**, **Memories** and
   **Appearance**. **Accounts** shows whose account agents use for each service:
