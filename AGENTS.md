@@ -109,6 +109,18 @@ only a clean linked worktree and a branch git deletes without force.
 The catalog's `markitdown` skill complements the Universal Agents bundled local
 AnyDoc skill by owning broader formats, URLs, plugins, and OCR-related
 workflows; do not blur that converter boundary with a silent fallback.
+The catalog's `headless` skill adapts the MIT-licensed `kunchenguid/headless`
+baseline for headless Mac, Linux, and Windows setup: keep every credential
+(admin passwords, SSH private keys, passphrases, Tailscale auth keys, and CLI
+tokens) in a credential store, keep Tailscale strongly recommended and on by
+default (`--no-tailscale` to opt out), keep config filenames UA-safe
+(`headless.conf` rather than `headless.env` so `sensitive_paths.py` does not
+reject them), align Universal Agents guidance with the UA credential store and
+real broker/SSH boundaries (`execution_control.ssh`, `cli:<name>` installed CLIs
+with 120s timeout, or guided handoff), and align T3 Code guidance with full T3
+fleet integration (`t3`, `claude`, `codex`, `agy`, background service, Tailscale
+Serve / T3 Connect, and bidirectional environment linking without printing
+pairing codes).
 
 Keep skill security checks in Universal Agents' built-in reviewed installation
 workflow, documented by `runtime-operations-workflows`, rather than a parallel

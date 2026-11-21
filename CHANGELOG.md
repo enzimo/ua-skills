@@ -14,6 +14,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `headless` sets up, hardens, verifies, and updates headless macOS (Apple
+  silicon), Linux (NixOS, Debian, Ubuntu, Fedora), and Windows (11 or Server
+  2025) machines over SSH, adapted from the MIT-licensed `kunchenguid/headless`
+  baseline. Every credential (admin passwords, SSH private keys, passphrases,
+  Tailscale auth keys, and CLI tokens) stays in a credential store, Tailscale
+  is strongly recommended and enabled by default (`--no-tailscale` to opt out),
+  and config files use UA-safe `headless.conf` naming. Includes dedicated
+  workflows for Universal Agents (UA credential store and verified broker/SSH
+  boundaries) and T3 Code (full T3 fleet integration with `t3`, `claude`,
+  `codex`, `agy`, background service, Tailscale Serve / T3 Connect, and
+  bidirectional environment linking).
+
 - `coder-critic-team` runs a code change with a lead, a coder and a critic. The
   coder plans first and the critic reviews the plan across nine lenses; the
   coder answers each critique, the critic gets one last word, and a maintained

@@ -14,3 +14,7 @@
 #   A made-up account name used in example home folder paths, such as
 #   /home/<name>. Common placeholders (alice, bob, me, exampleuser, YOUR_USER)
 #   are already allowed.
+
+# OpenSSH FIDO2 key-type identifiers (not email addresses).
+text: sk-ssh-ed25519@openssh.com
+text: sk-ecdsa-sha2-nistp256@openssh.com
