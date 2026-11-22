@@ -178,6 +178,15 @@ person can ask "What do you remember about me?" or say "Forget that".
 
 - Attach files with 📎, by pasting, or by dragging them into the chat (Web
   Chat). Other chat apps accept attachments too.
+- Files stay usable later in the same chat while the team still stores them
+  (uploads are kept for the number of days in **Settings → Team → File
+  Retention**): say "use the photo I sent earlier". Files sent while the
+  assistant works on a request count too. A file sent in another chat is not
+  available there; send it again in the chat that needs it.
+- To answer the assistant's question with a file, send it with the answer.
+- Files sent before the team's update to a version that keeps them with the
+  chat, and files the team no longer stores (for example past the retention
+  days), cannot be opened again; send them again when the assistant asks.
 - Web Chat: **Workspace** opens your own files. Select a file to preview it.
 - **Share…** lets another person read or change one of your files or folders,
   for as long as you choose.
@@ -187,7 +196,7 @@ person can ask "What do you remember about me?" or say "Forget that".
   `/send <path> to <person>` do the same. Web Chat uses the buttons instead.
 
 ```text
-📁 Drop files into the chat with 📎 or drag and drop, and I can read, convert or organize them. **Workspace** shows your own files. From there, **Share…** gives someone access and **Send…** delivers a copy to a person or the team folder.
+📁 Drop files into the chat with 📎 or drag and drop, and I can read, convert or organize them, also later in the same chat. **Workspace** shows your own files. From there, **Share…** gives someone access and **Send…** delivers a copy to a person or the team folder.
 ```
 
 ## tasks

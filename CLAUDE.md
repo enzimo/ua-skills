@@ -54,6 +54,12 @@ Keep the Knowledge tour aligned with editable **Home** articles and the
 paginated **All pages** directory. Keep **All pages → Archived pages → Restore** current.
 Describe archive proposals as preserving the current page's text and details,
 with no **Edit, then publish** action.
+Keep the files step aligned with how Universal Agents keeps uploads with a
+chat: usable later in that chat only, while the team still stores them,
+including files sent while a request runs and with an answer to the
+assistant's question; files from before the update, or no longer stored, are
+sent again. Retention days are the usual limit, not a promise that a file is
+still stored. Never suggest reaching files sent in another chat.
 The catalog includes `single-page-site` for generated articles, comparisons,
 procedural how-tos, and browser-local interactive apps. Keep it aligned with
 how Universal Agents serves pages: from `sites/` of the person's folder, only

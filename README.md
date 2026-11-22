@@ -56,6 +56,12 @@ The Knowledge tour describes editable **Home** articles, the paginated
 publishing an archive proposal keeps the current page's text and details;
 archive proposals have no **Edit, then publish** action.
 
+The files step explains that files stay usable later in the same chat while
+the team still stores them (**Settings → Team → File Retention** sets the
+days), including files sent while a request runs and with an answer to a
+question. Files from another chat, from before the update that keeps files
+with a chat, or no longer stored are sent again.
+
 The onboarding guide saves memory progress using the fact's `record_digest`.
 The planning guide changes Objectives using `expected_version` and keeps task
 controls within the current request. These instructions require a Universal

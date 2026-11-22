@@ -60,6 +60,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `user-onboarding-guide`'s files step says that files stay usable later in
+  the same chat while the team still stores them (**Settings → Team → File
+  Retention** sets the days), including files sent while a request runs and
+  with an answer to the assistant's question. Files from another chat, from
+  before the update that keeps files with a chat, or no longer stored are sent
+  again.
+
 - `user-onboarding-guide` handles the refusals Universal Agents 0.10 gives a
   request whose memory fact someone else changed while it ran: after
   `change_conflict` or `needs_person_decision` it does not save the tour
