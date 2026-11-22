@@ -58,6 +58,10 @@ Explain how to add people, then roles, then stopping someone's access.
 - `/link <tool> team` links a team account for a service the team shares,
   such as `/link http:exa team`. Each person's own link is used first. X
   starts private: send `/accounts share cli:x` before `/link cli:x team`.
+- `/link <tool> gate` links a web API tool's team gate credential, for a
+  service behind a gate such as a Cloudflare rule that needs a secret header.
+  The broker adds it to every request to that service, whoever's account is
+  used and whatever `/accounts` says. Only administrators can link it.
 - `/auth` shows each key's state without showing the key.
 
 ## admin_grow_team
