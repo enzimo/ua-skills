@@ -61,6 +61,9 @@ REVIEW_VERDICTS = ["approve", "approve_with_changes", "needs_rework", "goal_uncl
 REVIEW_STAGES = ["after_pr", "before_run"]
 FINDING_STATUS = ["open", "fixed", "issue_filed", "proposed", "accepted_risk", "wont_fix"]
 CRITERION_STATUS = ["met", "partial", "unmet", "unverified"]
+CRITERION_LAYERS = ["deterministic", "semantic"]
+LAYER_ALIASES = {"l1": "deterministic", "deterministic": "deterministic",
+                 "l2": "semantic", "semantic": "semantic"}
 OUTCOMES = ["ready_to_merge", "needs_attention", "blocked", "abandoned"]
 INTERVENTION_REASONS = [
     "blocker_dispute", "loop", "stall", "scope_drift", "tests_failing",
@@ -280,6 +283,9 @@ class Run:
         self.closed: Optional[Dict[str, Any]] = None
         self.interventions: List[Dict[str, Any]] = []
         self.pending_review: Optional[str] = None  # round awaiting the critic
+        self.criteria_history: Dict[str, List[Dict[str, Any]]] = {
+            c["id"]: [] for c in self.brief.get("acceptance_criteria", [])
+        }
         for event in self.events[1:]:
             self.apply(event)
 
@@ -302,12 +308,14 @@ class Run:
             self.pending_review = rkey
             for fid in data.get("addresses", []):
                 self.findings[fid].setdefault("addressed_in", []).append(rkey)
+            self._record_criteria_checks(event)
         elif kind == "review":
             self.pending_review = None
             for item in data["items"]:
                 self.items[item["id"]] = {**item, "round": rkey, "raised_seq": event["seq"],
                                           "state": "awaiting_decision", "history": []}
                 self.round_named(rkey)["items"].append(item["id"])
+            self._record_criteria_checks(event)
         elif kind == "response":
             for dec in data["decisions"]:
                 item = self.items[dec["item"]]
@@ -383,6 +391,52 @@ class Run:
             self.narrative = data
         elif kind == "close":
             self.closed = data
+
+    def _record_criteria_checks(self, event: Dict[str, Any]) -> None:
+        for chk in event["data"].get("criteria_checks") or []:
+            self.criteria_history.setdefault(chk["id"], []).append({
+                "seq": event["seq"], "actor": event["actor"], "round": event.get("round"),
+                "passed": chk["passed"], "evidence": chk["evidence"],
+            })
+
+    def criteria_regret(self) -> Dict[str, Any]:
+        """Paired directional regret (GUARD): Regressed > Unsolved Gap > Mastered (pinned)."""
+        regressed: List[Dict[str, Any]] = []
+        unsolved: List[Dict[str, Any]] = []
+        mastered: List[Dict[str, Any]] = []
+        unchecked: List[Dict[str, Any]] = []
+        layer1_failed: List[str] = []
+        for c in self.brief.get("acceptance_criteria", []):
+            cid = c["id"]
+            hist = self.criteria_history.get(cid) or []
+            base = {"id": cid, "text": c["text"]}
+            if c.get("layer"):
+                base["layer"] = c["layer"]
+            if c.get("check"):
+                base["check"] = c["check"]
+            if not hist:
+                unchecked.append(base)
+                continue
+            curr = hist[-1]
+            prev = hist[-2] if len(hist) >= 2 else None
+            entry = {**base, "passed": curr["passed"], "evidence": curr["evidence"],
+                     "round": curr.get("round"), "actor": curr.get("actor")}
+            if not curr["passed"] and c.get("layer") == "deterministic":
+                layer1_failed.append(cid)
+            if prev is not None and prev["passed"] and not curr["passed"]:
+                regressed.append({**entry, "priority": 2, "prev_round": prev.get("round")})
+            elif not curr["passed"]:
+                unsolved.append({**entry, "priority": 1})
+            else:
+                mastered.append({**entry, "priority": 0})
+        return {
+            "has_checks": any(bool(h) for h in self.criteria_history.values()),
+            "regressed": regressed,
+            "unsolved_gaps": unsolved,
+            "mastered": mastered,
+            "unchecked": unchecked,
+            "layer1_failed": layer1_failed,
+        }
 
     def rebuttal_eligible(self, item: Dict[str, Any], decision: str) -> bool:
         if decision == "accept":
@@ -518,7 +572,7 @@ class Run:
         sig: List[Dict[str, str]] = []
         if self.closed:
             return sig
-        stall = float(self.limit("stall_minutes", 45))
+        stall = float(self.limit("stall_minutes", 20))
         idle = minutes_between(self.events[-1]["ts"], now or now_iso())
         if idle > stall:
             sig.append({"signal": "stall",
@@ -542,6 +596,14 @@ class Run:
         if max_cp and len(cps) > int(max_cp):
             sig.append({"signal": "budget",
                         "detail": f"{len(cps)} checkpoints exceed the limit of {max_cp}"})
+        regret = self.criteria_regret()
+        if regret["regressed"]:
+            ids = [c["id"] for c in regret["regressed"]]
+            sig.append({"signal": "criteria_regressed",
+                        "detail": f"{span(ids)} regressed (passed -> failed); fix before new work"})
+        if regret["layer1_failed"]:
+            sig.append({"signal": "layer1_failed",
+                        "detail": f"deterministic check(s) {span(regret['layer1_failed'])} failed"})
         return sig
 
     def reraise_chains(self) -> Dict[str, List[str]]:
@@ -647,6 +709,9 @@ def check_turn(run: Run, turn: Dict[str, Any], actor: str
         data["items"] = normalised
         if turn.get("verdict"):
             data["verdict"] = text_of(turn, "verdict", where)
+        checks = validate_criteria_checks(run, turn, where)
+        if checks:
+            data["criteria_checks"] = checks
 
     elif kind in ("response", "final_call"):
         state = "awaiting_decision" if kind == "response" else "awaiting_final_call"
@@ -707,6 +772,9 @@ def check_turn(run: Run, turn: Dict[str, Any], actor: str
                 raise CctError(f"{where}: 'addresses' names unknown finding {fid}")
         if addresses:
             data["addresses"] = sorted(set(addresses), key=id_order)
+        checks = validate_criteria_checks(run, turn, where)
+        if checks:
+            data["criteria_checks"] = checks
         data["git"] = checkpoint_git(run, rnd)
 
     elif kind == "pr":
@@ -947,6 +1015,29 @@ def check_close(run: Run, outcome: str, where: str) -> None:
                        "Close as needs_attention or blocked instead")
 
 
+def validate_criteria_checks(run: Run, turn: Dict[str, Any], where: str) -> List[Dict[str, Any]]:
+    raw = list_of(turn, "criteria_checks", where, dict, required=False)
+    if not raw:
+        return []
+    known = {c["id"] for c in run.brief.get("acceptance_criteria", [])}
+    seen = set()
+    out: List[Dict[str, Any]] = []
+    for n, entry in enumerate(raw, 1):
+        cw = f"{where} criteria_checks[{n}]"
+        cid = need(entry, "id", cw)
+        if cid not in known:
+            raise CctError(f"{cw}: unknown acceptance criterion '{cid}'")
+        if cid in seen:
+            raise CctError(f"{cw}: duplicate criterion '{cid}' in one turn")
+        seen.add(cid)
+        passed = entry.get("passed")
+        if not isinstance(passed, bool):
+            raise CctError(f"{cw}: 'passed' must be true or false")
+        evidence = need(entry, "evidence", cw)
+        out.append({"id": cid, "passed": passed, "evidence": evidence})
+    return out
+
+
 def rel_existing(run: Run, path: str, where: str) -> str:
     target = (run.dir / path).resolve()
     if not target.exists():
@@ -996,10 +1087,23 @@ def cmd_init(args: argparse.Namespace) -> None:
     criteria = need(brief, "acceptance_criteria", where, list)
     if not criteria:
         raise CctError("brief: list at least one acceptance criterion")
-    brief["acceptance_criteria"] = [
-        {"id": c.get("id") or f"A{n}", "text": need(c, "text", f"brief criterion {n}")}
-        if isinstance(c, dict) else {"id": f"A{n}", "text": str(c)}
-        for n, c in enumerate(criteria, 1)]
+    normalised_criteria = []
+    for n, c in enumerate(criteria, 1):
+        if isinstance(c, dict):
+            entry = {"id": c.get("id") or f"A{n}", "text": need(c, "text", f"brief criterion {n}")}
+            if c.get("layer") is not None:
+                raw_layer = str(c["layer"]).strip().lower()
+                if raw_layer not in LAYER_ALIASES:
+                    raise CctError(
+                        f"brief criterion {n}: 'layer' must be deterministic/L1 or semantic/L2"
+                    )
+                entry["layer"] = LAYER_ALIASES[raw_layer]
+            if c.get("check") is not None:
+                entry["check"] = need(c, "check", f"brief criterion {n}")
+            normalised_criteria.append(entry)
+        else:
+            normalised_criteria.append({"id": f"A{n}", "text": str(c)})
+    brief["acceptance_criteria"] = normalised_criteria
     for key in ("features", "non_goals", "constraints"):
         brief[key] = list_of(brief, key, where, str, required=False)
     repo = need(brief, "repo", where, dict)
@@ -1106,7 +1210,14 @@ def brief_markdown(brief: Dict[str, Any]) -> str:
     if brief.get("features"):
         lines += ["## Features", ""] + [f"- {f}" for f in brief["features"]] + [""]
     lines += ["## Acceptance criteria", ""]
-    lines += [f"- **{c['id']}** {c['text']}" for c in brief["acceptance_criteria"]] + [""]
+    for c in brief["acceptance_criteria"]:
+        tag = ""
+        if c.get("layer") == "deterministic":
+            tag = f" [L1 deterministic: `{c['check']}`]" if c.get("check") else " [L1 deterministic]"
+        elif c.get("layer") == "semantic":
+            tag = " [L2 semantic]"
+        lines.append(f"- **{c['id']}**{tag} {c['text']}")
+    lines.append("")
     if brief.get("non_goals"):
         lines += ["## Non-goals", ""] + [f"- {g}" for g in brief["non_goals"]] + [""]
     if brief.get("constraints"):
@@ -1261,6 +1372,15 @@ def cmd_state(args: argparse.Namespace) -> None:
         "signals": run.signals(),
         "closed": bool(run.closed),
     }
+    regret = run.criteria_regret()
+    if regret["has_checks"]:
+        state["criteria_regret"] = {
+            "regressed": [c["id"] for c in regret["regressed"]],
+            "unsolved_gaps": [c["id"] for c in regret["unsolved_gaps"]],
+            "mastered": [c["id"] for c in regret["mastered"]],
+            "unchecked": [c["id"] for c in regret["unchecked"]],
+            "layer1_failed": regret["layer1_failed"],
+        }
     if args.json:
         print(json.dumps(state, indent=2, ensure_ascii=False))
         return
@@ -1511,6 +1631,21 @@ def context_sections(run: Run, role: str, mine: List[Dict[str, Any]]) -> List[st
         out += ["## Settled critiques", "",
                 f"{len(settled)} settled ({span([i['id'] for i in settled])}). Their text is in "
                 f"the critic's review files in `{run.dir / 'turns'}`.", ""]
+    regret = run.criteria_regret()
+    if regret["has_checks"]:
+        out += ["## Acceptance checklist status (paired regret)", ""]
+        if regret["regressed"]:
+            out += ["**Regressed (fix first — previously passed, now failing):**"]
+            out += [f"- **{c['id']}** {c['text']} (latest: {c['evidence']})" for c in regret["regressed"]]
+        if regret["unsolved_gaps"]:
+            out += ["**Unsolved gaps:**"]
+            out += [f"- **{c['id']}** {c['text']} (latest: {c['evidence']})" for c in regret["unsolved_gaps"]]
+        if regret["mastered"]:
+            out += ["**Mastered (pinned — do not regress):** "
+                    + ", ".join(c["id"] for c in regret["mastered"])]
+        if regret["unchecked"]:
+            out += ["**Not yet checked:** " + ", ".join(c["id"] for c in regret["unchecked"])]
+        out.append("")
     return out
 
 
@@ -2027,7 +2162,12 @@ def compute_stats(run: Run) -> Dict[str, Any]:
     if not run.acceptance:
         warnings.append("acceptance criteria were not checked")
 
-    return {
+    regret = run.criteria_regret()
+    if regret["regressed"]:
+        warnings.append(f"criterion regression unresolved: {span([c['id'] for c in regret['regressed']])}")
+    if regret["layer1_failed"]:
+        warnings.append(f"deterministic check(s) failed at latest checkpoint: {span(regret['layer1_failed'])}")
+    stats_out = {
         "schema": SCHEMA,
         "generated_at": now_iso(),
         "run": {
@@ -2051,6 +2191,7 @@ def compute_stats(run: Run) -> Dict[str, Any]:
             "fix_rounds": run.fix_rounds,
             "findings": len(findings),
             "findings_matched": sum(1 for f in findings if f.get("matches_item")),
+            "criteria_regressed": len(regret["regressed"]),
         },
         "items": {
             "total": len(items), "by_decision": by_decision, "by_severity": by_severity,
@@ -2075,6 +2216,15 @@ def compute_stats(run: Run) -> Dict[str, Any]:
         "findings": findings,
         "warnings": warnings,
     }
+    if regret["has_checks"]:
+        stats_out["criteria_regret"] = {
+            "regressed": [c["id"] for c in regret["regressed"]],
+            "unsolved_gaps": [c["id"] for c in regret["unsolved_gaps"]],
+            "mastered": [c["id"] for c in regret["mastered"]],
+            "unchecked": [c["id"] for c in regret["unchecked"]],
+            "layer1_failed": regret["layer1_failed"],
+        }
+    return stats_out
 
 
 SPAN_WORDS = {"plan": "plan", "review": "review", "response": "response",

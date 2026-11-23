@@ -21,8 +21,10 @@ request and a `fix_request` come after it.
   "outcome": "Deliveries that fail transiently are retried with backoff and dead-lettered after the last attempt.",
   "features": ["Exponential backoff with full jitter", "Dead-letter store"],
   "acceptance_criteria": [
-    "Retries 5xx and timeouts; never 4xx except 429",
-    "No delivery is sent twice after a slow acknowledgement"
+    {"id": "A1", "text": "Retries 5xx and timeouts; never 4xx except 429",
+     "layer": "deterministic", "check": "pytest tests/test_retry.py"},
+    {"id": "A2", "text": "No delivery is sent twice after a slow acknowledgement",
+     "layer": "semantic"}
   ],
   "non_goals": ["No schema migrations", "No per-endpoint rate limiting"],
   "constraints": ["Python 3.11; no new runtime dependencies"],
@@ -32,17 +34,20 @@ request and a `fix_request` come after it.
            "branch": "feat/webhook-retry"},
   "pull_request": {"url": "https://github.com/example-owner/relay/pull/142", "number": 142},
   "workers": {
-    "coder": {"runtime": "claude-code", "model": "claude-opus-5-5", "effort": "xhigh"},
-    "critic": {"runtime": "claude-code", "model": "claude-opus-5-5", "effort": "xhigh"}
+    "coder": {"runtime": "antigravity", "model": "gemini-4-neon", "effort": "high"},
+    "critic": {"runtime": "claude-code", "model": "claude-fable-5-2", "effort": "high"}
   },
   "extra_lenses": ["data_integrity"],
-  "limits": {"max_checkpoints": 8, "stall_minutes": 45, "fix_rounds": 1},
+  "limits": {"max_checkpoints": 8, "stall_minutes": 20, "fix_rounds": 1},
   "follow_up_issues": "file"
 }
 ```
 
 - Write each acceptance criterion so a test or a reading of the code can
-  decide it.
+  decide it. Plain strings still work; dict entries may add `"layer"`
+  (`"deterministic"` / `"L1"` for runnable tests or commands, or `"semantic"` /
+  `"L2"` for code/trace inspection) and `"check"` (the deterministic command)
+  so `cct.py` tracks Layer-1 failures and paired regret across checkpoints.
 - Record the model and effort each worker actually runs with, not the
   requested ones. Leave out `effort` when the runtime does not apply one.
 - `extra_lenses` may add `data_integrity`, `compatibility` and `operability`.

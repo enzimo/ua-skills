@@ -19,15 +19,23 @@ Recognise the runtime from what you can see:
 **Workers.** Start the coder and the critic as subagents, one at a time and in
 the foreground:
 
+- Default models and fallbacks (unless the person chooses otherwise):
+  - **Coder:** Gemini 4 Neon (`gemini-4-neon`, `thought_level: "high"`) -> Claude Opus 5.5 (`claude-opus-5-5`, `effort: "high"`) -> ask the person.
+  - **Critic:** Claude Fable 5.2 (`claude-fable-5-2`, `effort: "high"`) -> Claude Opus 5.5 (`claude-opus-5-5`, `effort: "high"`) -> ask the person.
+  - **Orchestrator (lead), when launching one:** Claude Opus 5.5 (`claude-opus-5-5`, `effort: "high"`) -> Gemini 4 Neon (`gemini-4-neon`, `thought_level: "high"`) -> ask the person.
 - When a worker runs on your own provider with no settings beyond yours, use
-  the `Agent` tool with the worker's `model` and `effort` (by default `opus`
-  and `xhigh`) and `run_in_background: false`. Continue the same worker with
+  the `Agent` tool with the worker's `model` and `effort` (or `thought_level`)
+  and `run_in_background: false`. Continue the same worker with
   `SendMessage`, so it keeps its context between turns.
 - When a worker needs another provider, model or effort than yours, follow the
   host's rules for child agents. In T3 Code that is `delegate_task` with the
-  model and `effort` in `target.options`, after `orchestrator_capabilities`.
-  Start a new child for each of that worker's turns; the turn brief carries
-  what it needs.
+  model and `effort` or `thought_level` in `target.options`, after
+  `orchestrator_capabilities`. Start a new child for each of that worker's
+  turns; the turn brief carries what it needs.
+- **Stuck threads:** Monitor active worker threads. If a thread is stuck for
+  20 minutes without progress, stop/cancel it (`task_cancel` for delegated
+  children in T3 Code), re-brief smaller if needed, and relaunch with its role
+  file and turn brief (`worker_replaced`).
 
 Brief every worker with the handoff `cct.py` prints for it, after `cct.py post`
 or from `cct.py turn RUN_DIR --for <role>`. A first handoff also names the

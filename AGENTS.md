@@ -111,7 +111,16 @@ numbered escalations and the lead's planned request budget keep. Keep
 newer of the base and its remote-tracking branch, or an existing pull
 request's head on the remote. Keep `cct.py tidy` for runs whose pull request is merged: it removes
 only the files the ledger names and keeps the report, and with `--worktree`
-only a clean linked worktree and a branch git deletes without force.
+only a clean linked worktree and a branch git deletes without force. Keep its
+model fallbacks (coder: Gemini 4 Neon `high` -> Claude Opus 5.5 `high` -> ask;
+critic: Claude Fable 5.2 `high` -> Claude Opus 5.5 `high` -> ask; orchestrator:
+Claude Opus 5.5 `high` -> Gemini 4 Neon `high` -> ask), 20-minute
+stuck-thread monitoring and relaunch guidance, Turn-0 Layer-1/Layer-2 criteria
+paired-regret tracking (`criteria_checks`, `criteria_regressed`,
+`layer1_failed`), and GUARD interactive 10-run fine-tuning guidance
+(`references/evolution.md`) consistent across `SKILL.md`,
+`references/runtimes.md`, `references/lead-turns.md`, `references/protocol.md`,
+and `scripts/cct.py`.
 The catalog's `markitdown` skill complements the Universal Agents bundled local
 AnyDoc skill by owning broader formats, URLs, plugins, and OCR-related
 workflows; do not blur that converter boundary with a silent fallback.

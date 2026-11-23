@@ -49,6 +49,10 @@ apply.
   not the working tree. Ignore generated files rather than leaving them
   untracked.
 - Run the tests that cover the checkpoint and report the real counts.
+- `[iff the brief lists acceptance criteria]` Include `criteria_checks` on
+  checkpoints (especially the final checkpoint and fix rounds) with real
+  pass/fail evidence. Fix any criterion listed under **Regressed** in the turn
+  brief before adding new work, and never break **Mastered** criteria.
 - Record deviations from the plan as they happen, with the reason.
 - Keep each checkpoint reviewable: roughly 50 to 250 changed lines.
 - After a review, apply what you accepted before or within the next checkpoint.

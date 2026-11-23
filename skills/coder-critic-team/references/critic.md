@@ -37,7 +37,9 @@ For each critique:
 - When a checkpoint names review findings it fixes, check each fix against
   the finding's scenario, and say so when a fix covers only part of it.
 - In the final review, read the whole change as it will ship, against every
-  acceptance criterion.
+  acceptance criterion. Record binary `criteria_checks` (`passed` + `evidence`)
+  for each checked criterion; a failing Layer-1 deterministic check or test
+  never passes on prose alone.
 - An empty review is a valid review when nothing needs to change.
 
 Flag important discoveries and user decisions to the lead promptly, even when

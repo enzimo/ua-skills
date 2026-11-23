@@ -146,13 +146,20 @@ Plain strings everywhere; no Markdown tables. Item and finding IDs (`C01`,
       "detail": "A receiver that processes the event but answers after the timeout is retried.",
       "suggestion": "Send an idempotency key and keep it across attempts."
     }
+  ],
+  "criteria_checks": [
+    {"id": "A1", "passed": true, "evidence": "test_policy::test_retryable_statuses passed"}
   ]
 }
 ```
 
-`items` may be empty. To raise again a critique the coder did not take in
-full, add `"reraises": "C04"` and `"new_evidence"`. Without new evidence, do
-not raise it again. An accepted critique or a lead ruling is final.
+`items` may be empty. `criteria_checks` is optional (recommended on checkpoints
+and final review): binary `passed` + `evidence` verdicts for acceptance criteria
+so `cct.py` tracks paired directional regret (`Regressed` > `Unsolved gap` >
+`Mastered` pinned) and surfaces regressions in the next turn brief. To raise
+again a critique the coder did not take in full, add `"reraises": "C04"` and
+`"new_evidence"`. Without new evidence, do not raise it again. An accepted
+critique or a lead ruling is final.
 
 ### Coder: `response` and `final_call`
 
@@ -195,13 +202,18 @@ Answer exactly the critiques the turn brief lists. `decision` is `accept`,
   "tests": {"command": "pytest tests/retry -q", "passed": 21, "failed": 0},
   "deviations": ["Merged two planned units; the split added no clarity."],
   "addresses": ["F2", "F3"],
+  "criteria_checks": [
+    {"id": "A1", "passed": true, "evidence": "pytest tests/retry -q passed (21/21)"}
+  ],
   "final": false
 }
 ```
 
-`addresses` is optional. Use it when the run fixes the findings of an earlier
-review: list the findings this checkpoint fixes, by the IDs the turn brief
-gives. The critic checks each fix against its finding.
+`addresses` and `criteria_checks` are optional. Use `addresses` when the run
+fixes the findings of an earlier review: list the findings this checkpoint
+fixes, by the IDs the turn brief gives. Use `criteria_checks` to report binary
+pass/fail status and evidence for the acceptance criteria this checkpoint
+covers; `cct.py` compares checks across checkpoints to flag regressions first.
 
 Commit first, including new files: `cct.py` refuses a checkpoint while tracked
 files have uncommitted changes or untracked files are neither committed nor

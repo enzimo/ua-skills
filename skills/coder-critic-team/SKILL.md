@@ -76,8 +76,10 @@ Do not use it for:
 - A desired outcome that acceptance criteria can decide. Ask the person only
   the questions whose answers change the design.
 - Python 3.9 or newer and `git` for the scripts.
-- Worker models: Claude Opus 5.5 (`claude-opus-5-5`) at extra-high effort
-  (`xhigh`) for both workers, unless the person chooses otherwise.
+- Worker and orchestrator models (unless the person chooses otherwise):
+  - **Coder:** Gemini 4 Neon (`gemini-4-neon`) at `high` (`thought_level: high`). Fall back to Claude Opus 5.5 (`claude-opus-5-5`) at `high` (`effort: high`), then ask the person how to proceed.
+  - **Critic:** Claude Fable 5.2 (`claude-fable-5-2`) at `high` (`effort: high`). Fall back to Claude Opus 5.5 (`claude-opus-5-5`) at `high` (`effort: high`), then ask the person how to proceed.
+  - **Orchestrator (lead), when launching one:** Claude Opus 5.5 (`claude-opus-5-5`) at `high` (`effort: high`). Fall back to Gemini 4 Neon (`gemini-4-neon`) at `high` (`thought_level: high`), then ask the person how to proceed.
 
 Run the scripts from this skill's `scripts/` folder: the folder the harness
 loaded this skill from, or in Universal Agents the path
@@ -107,7 +109,9 @@ loaded this skill from, or in Universal Agents the path
    [references/lead-turns.md](references/lead-turns.md) for the brief's
    fields. The brief needs:
    - the outcome and features;
-   - acceptance criteria a test or reading can decide;
+   - acceptance criteria a test or reading can decide (optionally tag each as
+     `layer: "deterministic"` with its `check` command for Layer-1 runnable
+     checks, or `layer: "semantic"` for Layer-2 code/trace checks);
    - non-goals and constraints;
    - how the change fits the larger Objective or plan;
    - the repository, base and work branch;
@@ -170,8 +174,9 @@ loaded this skill from, or in Universal Agents the path
    | --- | --- |
    | `blocker_dispute` | Read the critique, the coder's rationale and the critic's last word. Rule `accept`, `partial` or `reject` against the brief, with a rationale. |
    | `loop` (a critique raised again and again) | Rule on the root critique and say it is settled. |
-   | `stall` | Check that the worker is alive. Start a fresh worker with its role file and turn brief if it died or lost its context (`worker_replaced`). |
+   | `stall` | Monitor active worker threads. If a thread is stuck for 20 minutes without progress, stop it, re-brief smaller if needed, and relaunch with its role file and turn brief (`worker_replaced`). |
    | `tests_failing` or `no_progress` | Ask the coder what blocks it. Unblock the environment, or rule on the design question behind it. |
+   | `criteria_regressed` or `layer1_failed` | A previously passing acceptance criterion regressed (`passed -> failed`) or a deterministic Layer-1 check failed. Prioritize fixing the regression before new work; prose cannot override a failing Layer-1 check. |
    | `checkout_changed` (printed after a critic turn) | The tree was clean at the checkpoint, so the change is the critic's. Restore it and remind the critic that it reads only. |
    | `budget` | Raise the limit with a `limits` turn, narrow the scope within the brief, or stop and close as `needs_attention`. |
    | Plan or code drifting from the intent | Restate the brief and rule (`scope_drift`). |
@@ -239,6 +244,15 @@ loaded this skill from, or in Universal Agents the path
     five lines: the outcome, the pull request link, what needs their
     decision, and where the report is.
 
+    When Critic Observer is configured (MCP `record_cct_run` or CLI
+    `critic-observer submit-cct RUN_DIR/stats.json`), log the completed run so
+    historical metrics and run counts stay current. Check the returned
+    `skill_status` (or `get_skill_status("coder-critic-team")`): if
+    `fine_tune_due` is true (every 10th completed run since the last
+    fine-tune), **propose** an interactive fine-tuning session to the user
+    following [references/evolution.md](references/evolution.md). Never edit
+    skill files automatically; wait for the user to approve each proposed fix.
+
 12. **Clean up after the merge.** Leave the run as it is until its pull
     request is merged, often later, when the person says so. Leave an
     unmerged or abandoned run alone.
@@ -265,6 +279,8 @@ loaded this skill from, or in Universal Agents the path
 
 | Failure | Response |
 | --- | --- |
+| Model unavailable or usage limit hit | Follow the role's fallback chain: coder starts on Gemini 4 Neon (`high`), falls back to Claude Opus 5.5 (`high`), then asks; critic starts on Claude Fable 5.2 (`high`), falls back to Claude Opus 5.5 (`high`), then asks; an orchestrator (if launched) starts on Claude Opus 5.5 (`high`), falls back to Gemini 4 Neon (`high`), then asks. Record the actual model and effort in the brief, or as a `note` / `worker_replaced` intervention if switched mid-run. |
+| Worker or orchestrator thread stuck for 20 minutes | Monitor active threads. If a thread has made no progress for 20 minutes, stop/cancel it, re-brief smaller (narrowing the checkpoint or task scope if oversized), and relaunch with its role file and turn brief (`worker_replaced`). |
 | `cct.py` prints `Refused:` | Nothing was recorded. Send the message to whoever wrote the turn. Never edit `ledger.jsonl`; it is append-only. Correct a recorded mistake with an `intervention` or `note`. |
 | A worker crashed or ran out of context | Start a fresh one with its role file and `cct.py turn`. The ledger, the commits and the turn brief carry the state. |
 | The critic changed the checkout | Restore the change, remind it, record a `note`. |
@@ -291,6 +307,10 @@ loaded this skill from, or in Universal Agents the path
   Read your runtime's section before step 2.
 - [references/report-design.md](references/report-design.md): the report's
   design. Read it only when changing the report.
+- [references/evolution.md](references/evolution.md): GUARD rule-authoring
+  hygiene (`[iff <trigger>]` scoping, pinned invariants, size caps), the
+  Rejection Ledger, and the interactive 10-run fine-tuning workflow. Read it
+  when fine-tuning the skill or when `fine_tune_due` is reported.
 - `scripts/cct.py`: the run ledger. Its commands are `init`, `post`, `state`,
   `turn`, `show`, `stats` and `tidy`.
 - `scripts/render_report.py`: validates `stats.json` and renders it as

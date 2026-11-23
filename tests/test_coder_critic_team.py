@@ -1439,5 +1439,82 @@ class RenderEdgeTest(unittest.TestCase):
         self.assertIn("Timeline", render.render(stats, "page"))
 
 
+class CriteriaRegretTest(unittest.TestCase):
+    """Turn-0 L1/L2 criteria tagging and GUARD paired-regret tracking across checkpoints."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.d = Driver(Path(self.tmp.name))
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_layer_tags_and_paired_regret_signals(self):
+        self.d.init(acceptance_criteria=[
+            {"id": "A1", "text": "Retries 5xx responses", "layer": "L1", "check": "pytest tests/retry"},
+            {"id": "A2", "text": "No duplicate sends", "layer": "semantic"},
+        ])
+        brief_md = (self.d.run / "brief.md").read_text()
+        self.assertIn("[L1 deterministic: `pytest tests/retry`]", brief_md)
+        self.assertIn("[L2 semantic]", brief_md)
+
+        self.d.post(5, {"type": "plan", "summary": "s", "units": [{"name": "u", "purpose": "p"}],
+                        "lenses": LENSES, "checkpoints": ["cp1", "cp2"]})
+        self.d.post(8, {"type": "review", "summary": "ok", "items": []})
+
+        write_lines(self.d.repo, "src/relay/retry.py", 10, "cp1")
+        commit(self.d.repo, "cp1")
+        self.d.post(15, {
+            "type": "checkpoint", "title": "cp1", "tests": {"passed": 5, "failed": 0},
+            "criteria_checks": [
+                {"id": "A1", "passed": True, "evidence": "pytest tests/retry passed (5/5)"},
+                {"id": "A2", "passed": False, "evidence": "dedup not wired yet"},
+            ],
+        })
+        self.d.post(18, {"type": "review", "summary": "good start", "items": []})
+        st1 = json.loads(self.d.call("state", str(self.d.run), "--json"))
+        self.assertEqual(st1["criteria_regret"]["mastered"], ["A1"])
+        self.assertEqual(st1["criteria_regret"]["unsolved_gaps"], ["A2"])
+        self.assertEqual(st1["criteria_regret"]["regressed"], [])
+
+        # Checkpoint 2 breaks A1 (passed -> failed): paired regret flags it as regressed + layer1_failed.
+        write_lines(self.d.repo, "src/relay/retry.py", 12, "cp2")
+        commit(self.d.repo, "cp2")
+        out = self.d.post(25, {
+            "type": "checkpoint", "title": "cp2", "tests": {"passed": 4, "failed": 1},
+            "criteria_checks": [
+                {"id": "A1", "passed": False, "evidence": "503 retry test failed"},
+                {"id": "A2", "passed": True, "evidence": "idempotency key added"},
+            ],
+        })
+        self.assertIn("Signal: criteria_regressed", out)
+        self.assertIn("Signal: layer1_failed", out)
+        critic_brief = self.d.call("turn", str(self.d.run), "--for", "critic", "--full")
+        self.assertIn("Regressed (fix first", critic_brief)
+        self.assertIn("Mastered (pinned", critic_brief)
+
+        # Stats remain schema-2 compatible with render_report.py.
+        self.d.call("stats", str(self.d.run))
+        stats = json.loads((self.d.run / "stats.json").read_text())
+        self.assertEqual(stats["criteria_regret"]["regressed"], ["A1"])
+        self.assertEqual(stats["counts"]["criteria_regressed"], 1)
+        self.assertIn("Retries 5xx responses", render.render(stats, "page"))
+
+    def test_invalid_criteria_checks_are_refused(self):
+        self.d.init(acceptance_criteria=["Only A1"])
+        self.d.post(5, {"type": "plan", "summary": "s", "units": [{"name": "u", "purpose": "p"}],
+                        "lenses": LENSES, "checkpoints": ["cp1"]})
+        self.d.post(8, {"type": "review", "summary": "ok", "items": []})
+        write_lines(self.d.repo, "src/relay/retry.py", 4, "cp1")
+        commit(self.d.repo, "cp1")
+        path = self.d.run / "turns" / "bad-cp.json"
+        path.write_text(json.dumps({
+            "type": "checkpoint", "title": "cp1", "tests": {"passed": 1, "failed": 0},
+            "criteria_checks": [{"id": "A99", "passed": True, "evidence": "bad"}],
+        }))
+        msg = self.d.refused("post", str(self.d.run), "--actor", "coder", "--file", str(path))
+        self.assertIn("unknown acceptance criterion 'A99'", msg)
+
+
 if __name__ == "__main__":
     unittest.main()
