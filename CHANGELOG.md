@@ -11,8 +11,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `wait` / `long_wait` for a bounded pause inside the current task, next to
   schedules and heartbeat items for work that continues in a later session, and
   says a short `wait` for an outside process inside a work session is fine when
-  it ends well before the checkpoint reserve (Universal Agents pull requests 198
-  and 207).
+  it ends well before the checkpoint reserve. The mapping says the wait budget
+  is per task (a delegated subtask has its own), that a paused wait survives a
+  restart and that a wait outlasting its worker's shutdown fails the task
+  (Universal Agents pull requests 198 and 207).
 - `long-horizon-plan-execution`: the Universal Agents runtime mapping says a
   work-session step that pauses for a person's decision at its boundary keeps
   its pause and ends the session with the runtime's degraded checkpoint

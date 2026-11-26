@@ -29,7 +29,7 @@ side channels, or authority:
 | Recovery event | `record_plan_action` |
 | Fresh recovery context | `start_isolated_recovery` |
 | Optional solution comparison | Solution-variation tools |
-| Durable wait | Schedules and heartbeat items for work that continues in a later session; `wait` / `long_wait` for a bounded pause inside the current task (counts against the task's budget; refused when it would reach the schedule's next run) |
+| Durable wait | Schedules and heartbeat items for work that continues in a later session; `wait` / `long_wait` for a bounded pause inside the current task (counts against that task's own budget, and a delegated subtask has its own; refused when it would reach the schedule's next run; survives a restart, and fails at once when the worker shuts down before the wait ends) |
 | Lesson candidate | `AfterActionReport` |
 | Reusable knowledge for later work | Knowledge pages: `knowledge_search` before researching, `knowledge_write` or `knowledge_add_note` after (team changes made for a person are reviewed first) |
 
@@ -316,7 +316,8 @@ Finish each bounded session with a terminal `task_response` after saving its
 checkpoint. Keep unfinished work in the durable Objective and Plan for the next
 session instead of keeping the current Task waiting for the next timer tick; a
 short `wait` for an outside process inside the session is fine when it ends well
-before the checkpoint reserve. Report a blocked session honestly without
+before the checkpoint reserve. A wait outlasting its worker's shutdown fails the
+task, so prefer the next session for long gaps. Report a blocked session honestly without
 claiming that its remaining subgoals succeeded.
 Use a fresh interactive conversation for a repair that requires human input when
 the background Task has no external reply route. Before telling the owner to
